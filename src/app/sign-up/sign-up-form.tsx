@@ -1,14 +1,10 @@
 "use client";
 
 import { useSignUp } from "@clerk/nextjs";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import type {
-	InvestmentRange,
-	Sector,
-	UserRole,
-} from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -18,18 +14,33 @@ import {
 	NativeSelectOption,
 } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type {
+	InvestmentRange,
+	Sector,
+	UserRole,
+} from "@/generated/prisma/enums";
 import {
 	COUNTRIES,
-	INVESTMENT_RANGES,
 	INVESTMENT_RANGE_LABELS,
-	ROLES,
+	INVESTMENT_RANGES,
 	ROLE_LABELS,
-	SECTORS,
+	ROLES,
 	SECTOR_LABELS,
+	SECTORS,
 } from "@/lib/constants";
 import { completeSignup } from "./actions";
 
-export function SignUpForm() {
+type SignUpFormProps = {
+	/** Called after the account is fully created. Defaults to navigating to /dashboard. */
+	onSuccess?: () => void;
+	/** When set, the "Sign in" link becomes an in-place toggle instead of a route change. */
+	onSwitchToSignIn?: () => void;
+};
+
+export function SignUpForm({
+	onSuccess,
+	onSwitchToSignIn,
+}: SignUpFormProps = {}) {
 	const { signUp } = useSignUp();
 	const router = useRouter();
 
@@ -104,7 +115,11 @@ export function SignUpForm() {
 				return;
 			}
 			toast.success("Welcome to IM-VESTOR!");
-			router.push("/profile");
+			if (onSuccess) {
+				onSuccess();
+			} else {
+				router.push("/dashboard");
+			}
 		} finally {
 			setSubmitting(false);
 		}
@@ -265,6 +280,26 @@ export function SignUpForm() {
 			<Button type="submit" disabled={submitting}>
 				{submitting ? "Creating…" : "Continue"}
 			</Button>
+
+			<p className="text-center text-sm text-muted-foreground">
+				Already have an account?{" "}
+				{onSwitchToSignIn ? (
+					<button
+						type="button"
+						onClick={onSwitchToSignIn}
+						className="font-medium text-foreground underline"
+					>
+						Sign in
+					</button>
+				) : (
+					<Link
+						href="/sign-in"
+						className="font-medium text-foreground underline"
+					>
+						Sign in
+					</Link>
+				)}
+			</p>
 		</form>
 	);
 }

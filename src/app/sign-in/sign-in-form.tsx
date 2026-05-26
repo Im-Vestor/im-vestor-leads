@@ -9,7 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function SignInForm() {
+type SignInFormProps = {
+	/** Called after a successful sign-in. Defaults to navigating to /dashboard. */
+	onSuccess?: () => void;
+	/** When set, the "Sign up" link becomes an in-place toggle instead of a route change. */
+	onSwitchToSignUp?: () => void;
+};
+
+export function SignInForm({
+	onSuccess,
+	onSwitchToSignUp,
+}: SignInFormProps = {}) {
 	const { signIn } = useSignIn();
 	const router = useRouter();
 	const [email, setEmail] = useState("");
@@ -30,7 +40,11 @@ export function SignInForm() {
 				toast.error(clerkError(finalized.error) ?? "Could not sign in");
 				return;
 			}
-			router.push("/profile");
+			if (onSuccess) {
+				onSuccess();
+			} else {
+				router.push("/dashboard");
+			}
 		} finally {
 			setSubmitting(false);
 		}
@@ -65,9 +79,22 @@ export function SignInForm() {
 			</Button>
 			<p className="text-center text-sm text-muted-foreground">
 				No account?{" "}
-				<Link href="/sign-up" className="font-medium text-foreground underline">
-					Sign up
-				</Link>
+				{onSwitchToSignUp ? (
+					<button
+						type="button"
+						onClick={onSwitchToSignUp}
+						className="font-medium text-foreground underline"
+					>
+						Sign up
+					</button>
+				) : (
+					<Link
+						href="/sign-up"
+						className="font-medium text-foreground underline"
+					>
+						Sign up
+					</Link>
+				)}
 			</p>
 		</form>
 	);
