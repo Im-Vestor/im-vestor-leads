@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260.81 172.99">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        font-size: 71.5px;
+      }
+
+      .cls-1, .cls-2 {
+        font-family: PTSans-Bold, 'PT Sans';
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        fill: #e5cd82;
+        font-size: 95px;
+        letter-spacing: .03em;
+      }
+
+      .cls-3 {
+        fill: #c02026;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <text class="cls-2" transform="translate(78.92 147.98) rotate(-2)"><tspan x="0" y="0">€</tspan><tspan x="57.11" y="1.99">0</tspan></text>
+    <text class="cls-1" transform="translate(12.98 60.77)"><tspan x="0" y="0">€ 99.99</tspan></text>
+    <path class="cls-3" d="M.7,37.94c28.6,0,57.2,0,85.8,0,45.38,0,90.76,0,136.14,0,10.44,0,20.87,0,31.31,0,2.05,0,4.04-1.96,5.24-3.46.34-.43,2.78-4.04.9-4.04-28.6,0-57.2,0-85.8,0-45.38,0-90.76,0-136.14,0-10.44,0-20.87,0-31.31,0-2.05,0-4.04,1.96-5.24,3.46-.34.43-2.78,4.04-.9,4.04h0Z"/>
+  </g>
+</svg>

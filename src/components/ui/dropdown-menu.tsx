@@ -22,7 +22,7 @@ function DropdownMenuContent({
 	align = "start",
 	alignOffset = 0,
 	side = "bottom",
-	sideOffset = 4,
+	sideOffset = 8,
 	className,
 	...props
 }: MenuPrimitive.Popup.Props &
@@ -131,7 +131,7 @@ function DropdownMenuSubContent({
 	align = "start",
 	alignOffset = -3,
 	side = "right",
-	sideOffset = 0,
+	sideOffset = 6,
 	className,
 	...props
 }: React.ComponentProps<typeof DropdownMenuContent>) {
