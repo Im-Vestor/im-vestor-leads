@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
+		"ref": "BUN_PORT=5050 bun ./ref-preview/index.html",
 		"build": "next build",
 		"start": "next start",
 		"lint": "biome lint",
