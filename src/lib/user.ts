@@ -1,6 +1,7 @@
 import "server-only";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { UserRole } from "@/generated/prisma/enums";
+import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
 function generateReferralCode(seed: string): string {
@@ -24,7 +25,16 @@ export async function getOrCreateUser() {
 	if (!userId) return null;
 
 	const existing = await prisma.user.findUnique({ where: { clerkId: userId } });
-	if (existing) return existing;
+	if (existing) {
+		// Promote to admin if their email was added to ADMIN_EMAILS after signup.
+		if (existing.role !== UserRole.ADMIN && isAdminEmail(existing.email)) {
+			return prisma.user.update({
+				where: { id: existing.id },
+				data: { role: UserRole.ADMIN },
+			});
+		}
+		return existing;
+	}
 
 	const clerkUser = await currentUser();
 	const email =
@@ -40,7 +50,7 @@ export async function getOrCreateUser() {
 			clerkId: userId,
 			email,
 			name,
-			role: UserRole.ENTREPRENEUR,
+			role: isAdminEmail(email) ? UserRole.ADMIN : UserRole.ENTREPRENEUR,
 			referralCode: generateReferralCode(name ?? email ?? userId),
 		},
 	});

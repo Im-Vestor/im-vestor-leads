@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { SearchIcon } from "lucide-react";
+import { BadgeCheckIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ConversationListItem } from "@/app/messages/actions";
 import { Badge } from "@/components/ui/badge";
@@ -72,22 +72,39 @@ export function ConversationList({
 										type="button"
 										onClick={() => onSelect(c.id)}
 										className={cn(
-											"flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-accent",
-											isSelected && "bg-accent",
+											"flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors",
+											isSelected
+												? c.isSupport
+													? "bg-[#d3b662]/15 ring-1 ring-inset ring-[#d3b662]/40"
+													: "bg-secondary"
+												: "hover:bg-secondary/60",
+											c.isSupport &&
+												!isSelected &&
+												"ring-1 ring-inset ring-[#d3b662]/20",
 										)}
 									>
-										<UserAvatar name={name} isOnline={isOnline} size="md" />
+										<UserAvatar
+											name={name}
+											isOnline={isOnline}
+											support={c.isSupport}
+											size="md"
+										/>
 										<div className="flex min-w-0 flex-1 flex-col">
 											<div className="flex items-baseline justify-between gap-2">
-												<span
-													className={cn(
-														"truncate text-sm",
-														hasUnread
-															? "font-semibold text-foreground"
-															: "text-foreground",
-													)}
-												>
-													{name}
+												<span className="flex min-w-0 items-center gap-1">
+													<span
+														className={cn(
+															"truncate text-sm",
+															hasUnread
+																? "font-semibold text-foreground"
+																: "text-foreground",
+														)}
+													>
+														{name}
+													</span>
+													{c.isSupport ? (
+														<BadgeCheckIcon className="size-3.5 shrink-0 text-brand-gold" />
+													) : null}
 												</span>
 												{c.lastMessage ? (
 													<span className="shrink-0 text-[10px] text-muted-foreground">

@@ -172,6 +172,11 @@
   background-image: linear-gradient(to right, #edd689, #d3b662);
 }
 
+/* Gold brand accent for icons/text (e.g. Support badge) */
+.text-brand-gold {
+  color: #d3b662;
+}
+
 /* Marquee (partners) animations */
 @keyframes marquee {
   from { transform: translateX(0); }

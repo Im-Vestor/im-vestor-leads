@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, SendIcon } from "lucide-react";
+import { ArrowLeftIcon, BadgeCheckIcon, SendIcon } from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -35,6 +35,7 @@ type Props = {
 	conversationId: string;
 	myUserId: string;
 	other: OtherUser;
+	isSupport?: boolean;
 	isOtherOnline: boolean;
 	onBack?: () => void;
 	onMarkedAsRead?: () => void;
@@ -44,6 +45,7 @@ export function ChatPanel({
 	conversationId,
 	myUserId,
 	other,
+	isSupport,
 	isOtherOnline,
 	onBack,
 	onMarkedAsRead,
@@ -167,11 +169,25 @@ export function ChatPanel({
 						<ArrowLeftIcon className="size-4" />
 					</Button>
 				) : null}
-				<UserAvatar name={otherName} isOnline={isOtherOnline} size="md" />
+				<UserAvatar
+					name={otherName}
+					isOnline={isOtherOnline}
+					support={isSupport}
+					size="md"
+				/>
 				<div className="flex flex-col">
-					<span className="text-sm font-medium">{otherName}</span>
+					<span className="flex items-center gap-1 text-sm font-medium">
+						{otherName}
+						{isSupport ? (
+							<BadgeCheckIcon className="size-3.5 text-brand-gold" />
+						) : null}
+					</span>
 					<span className="text-xs text-muted-foreground">
-						{isOtherOnline ? "Online" : (other?.role ?? "")}
+						{isSupport
+							? "Support team"
+							: isOtherOnline
+								? "Online"
+								: (other?.role ?? "")}
 					</span>
 				</div>
 			</div>
@@ -196,6 +212,7 @@ export function ChatPanel({
 								createdAt={m.createdAt}
 								isOwn={m.senderId === myUserId}
 								senderName={otherName}
+								senderIsSupport={isSupport}
 							/>
 						))}
 					</div>

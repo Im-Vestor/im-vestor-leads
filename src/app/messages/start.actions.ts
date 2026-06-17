@@ -3,8 +3,31 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateSupportUser } from "@/lib/support";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+/** Finds the existing 1:1 conversation between two users, or creates it. */
+async function findOrCreateDirectConversation(aId: string, bId: string) {
+	return prisma.$transaction(async (tx) => {
+		const existing = await tx.conversation.findFirst({
+			where: {
+				AND: [
+					{ participants: { some: { id: aId } } },
+					{ participants: { some: { id: bId } } },
+				],
+			},
+			select: { id: true, participants: { select: { id: true } } },
+		});
+		if (existing && existing.participants.length === 2) return existing.id;
+
+		const created = await tx.conversation.create({
+			data: { participants: { connect: [{ id: aId }, { id: bId }] } },
+			select: { id: true },
+		});
+		return created.id;
+	});
+}
 
 const startSchema = z.object({
 	targetUserId: z.string().min(1),
@@ -35,26 +58,33 @@ export async function startConversationFromProfile(
 	});
 	if (!target) return { ok: false, error: "Recipient not found" };
 
-	const conversationId = await prisma.$transaction(async (tx) => {
-		const existing = await tx.conversation.findFirst({
-			where: {
-				AND: [
-					{ participants: { some: { id: me.id } } },
-					{ participants: { some: { id: target.id } } },
-				],
-			},
-			select: { id: true, participants: { select: { id: true } } },
-		});
-		if (existing && existing.participants.length === 2) return existing.id;
+	const conversationId = await findOrCreateDirectConversation(me.id, target.id);
 
-		const created = await tx.conversation.create({
-			data: {
-				participants: { connect: [{ id: me.id }, { id: target.id }] },
-			},
-			select: { id: true },
-		});
-		return created.id;
+	return { ok: true, data: { conversationId } };
+}
+
+/** Opens (or creates) the current user's conversation with Im-Vestor Support. */
+export async function startSupportConversation(): Promise<
+	ActionResult<{ conversationId: string }>
+> {
+	const { userId: clerkId } = await auth();
+	if (!clerkId) return { ok: false, error: "Not authenticated" };
+
+	const me = await prisma.user.findUnique({
+		where: { clerkId },
+		select: { id: true },
 	});
+	if (!me) return { ok: false, error: "User not found" };
+
+	const support = await getOrCreateSupportUser();
+	if (me.id === support.id) {
+		return { ok: false, error: "Support cannot message itself" };
+	}
+
+	const conversationId = await findOrCreateDirectConversation(
+		me.id,
+		support.id,
+	);
 
 	return { ok: true, data: { conversationId } };
 }

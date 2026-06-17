@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { UserRole } from "@/generated/prisma/enums";
 import { getOrCreateUser } from "@/lib/user";
 import { MessagesView } from "./messages-view";
 
@@ -15,7 +16,11 @@ export default async function MessagesPage({
 	const sp = await searchParams;
 	return (
 		<div className="mx-auto h-[calc(100vh-180px)] w-full max-w-6xl px-4">
-			<MessagesView myUserId={user.id} initialConversationId={sp.c ?? null} />
+			<MessagesView
+				myUserId={user.id}
+				initialConversationId={sp.c ?? null}
+				canContactSupport={user.role !== UserRole.ADMIN}
+			/>
 		</div>
 	);
 }

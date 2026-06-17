@@ -7,6 +7,7 @@ type MessageBubbleProps = {
 	createdAt: Date;
 	isOwn: boolean;
 	senderName: string;
+	senderIsSupport?: boolean;
 };
 
 export function MessageBubble({
@@ -14,6 +15,7 @@ export function MessageBubble({
 	createdAt,
 	isOwn,
 	senderName,
+	senderIsSupport,
 }: MessageBubbleProps) {
 	return (
 		<div
@@ -22,7 +24,9 @@ export function MessageBubble({
 				isOwn ? "justify-end" : "justify-start",
 			)}
 		>
-			{!isOwn ? <UserAvatar name={senderName} size="sm" /> : null}
+			{!isOwn ? (
+				<UserAvatar name={senderName} support={senderIsSupport} size="sm" />
+			) : null}
 			<div className={cn("flex max-w-[75%] flex-col", isOwn && "items-end")}>
 				<div
 					className={cn(

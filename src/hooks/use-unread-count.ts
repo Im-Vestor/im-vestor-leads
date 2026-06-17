@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getNotificationsUnreadCount } from "@/app/messages/notifications.actions";
+import { getUnreadMessageCount } from "@/app/messages/actions";
+import { subscribeMessagesRead } from "@/lib/unread-events";
 import { useRealtimeNotifications } from "./use-realtime-notifications";
 
 export function useUnreadCount(userId: string | null) {
 	const [count, setCount] = useState(0);
 
 	const refresh = useCallback(async () => {
-		const result = await getNotificationsUnreadCount();
+		const result = await getUnreadMessageCount();
 		if (result.ok) setCount(result.data);
 	}, []);
 
@@ -20,12 +21,16 @@ export function useUnreadCount(userId: string | null) {
 		void refresh();
 	}, [userId, refresh]);
 
+	// New incoming message → an unread notification is inserted for me.
 	useRealtimeNotifications(
 		userId,
 		useCallback(() => {
-			setCount((c) => c + 1);
-		}, []),
+			void refresh();
+		}, [refresh]),
 	);
 
-	return { count, refresh, setCount };
+	// A conversation was marked read elsewhere in the tree → recount.
+	useEffect(() => subscribeMessagesRead(() => void refresh()), [refresh]);
+
+	return { count, refresh };
 }

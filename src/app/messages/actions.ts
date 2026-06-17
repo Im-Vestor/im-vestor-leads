@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { findBannedWord } from "@/lib/messages/banned-words";
 import { prisma } from "@/lib/prisma";
+import { SUPPORT_EMAIL } from "@/lib/support";
 
 const MESSAGE_MAX_LENGTH = 4000;
 const PAGE_SIZE = 50;
@@ -44,6 +45,7 @@ export type ConversationListItem = {
 		senderId: string;
 	} | null;
 	unreadCount: number;
+	isSupport: boolean;
 };
 
 export async function getConversations(): Promise<
@@ -99,6 +101,7 @@ export async function getConversations(): Promise<
 			other,
 			lastMessage: row.messages[0] ?? null,
 			unreadCount: unreadByConv.get(row.id) ?? 0,
+			isSupport: other?.email === SUPPORT_EMAIL,
 		};
 	});
 

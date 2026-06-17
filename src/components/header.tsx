@@ -10,6 +10,7 @@ import {
 	MessageSquareIcon,
 	MoonIcon,
 	SearchIcon,
+	ShieldIcon,
 	SunIcon,
 	UserIcon,
 } from "lucide-react";
@@ -19,7 +20,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { getMyUserId } from "@/app/messages/notifications.actions";
+import { getMyRole, getMyUserId } from "@/app/messages/notifications.actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ import {
 	useLanguage,
 } from "@/contexts/LanguageContext";
 import { useUnreadCount } from "@/hooks/use-unread-count";
+import { useUnreadSupportCount } from "@/hooks/use-unread-support-count";
 
 const NAV_LINKS = [
 	{ label: "Explore", icon: SearchIcon },
@@ -78,20 +80,22 @@ export const Header = () => {
 const NavLinks = () => {
 	const pathname = usePathname();
 	const [userId, setUserId] = useState<string | null>(null);
-	const { count, setCount, refresh } = useUnreadCount(userId);
+	const [isAdmin, setIsAdmin] = useState(false);
+	const { count, refresh } = useUnreadCount(userId);
+	const { count: supportCount } = useUnreadSupportCount(isAdmin);
 
 	useEffect(() => {
 		void getMyUserId().then((r) => {
 			if (r.ok) setUserId(r.data);
 		});
+		void getMyRole().then((r) => {
+			if (r.ok) setIsAdmin(r.data === "ADMIN");
+		});
 	}, []);
 
 	useEffect(() => {
-		if (pathname?.startsWith("/messages")) {
-			setCount(0);
-			void refresh();
-		}
-	}, [pathname, setCount, refresh]);
+		if (pathname?.startsWith("/messages")) void refresh();
+	}, [pathname, refresh]);
 
 	return (
 		<nav className="hidden items-center gap-1 md:flex">
@@ -115,6 +119,22 @@ const NavLinks = () => {
 					</Button>
 				);
 			})}
+			{isAdmin ? (
+				<Button
+					variant={pathname?.startsWith("/admin") ? "secondary" : "ghost"}
+					size="sm"
+					className="relative"
+					render={<Link href="/admin" />}
+				>
+					<ShieldIcon className="size-4" />
+					Admin
+					{supportCount > 0 ? (
+						<Badge className="ml-1 h-4 min-w-4 justify-center rounded-full px-1 text-[10px]">
+							{supportCount > 99 ? "99+" : supportCount}
+						</Badge>
+					) : null}
+				</Button>
+			) : null}
 		</nav>
 	);
 };
