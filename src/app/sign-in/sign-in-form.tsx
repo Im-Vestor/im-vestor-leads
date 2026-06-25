@@ -10,9 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 type SignInFormProps = {
-	/** Called after a successful sign-in. Defaults to navigating to /dashboard. */
 	onSuccess?: () => void;
-	/** When set, the "Sign up" link becomes an in-place toggle instead of a route change. */
 	onSwitchToSignUp?: () => void;
 };
 

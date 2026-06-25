@@ -78,8 +78,6 @@ export async function updateProfile(
 	return { ok: true };
 }
 
-// Opens the Stripe billing portal so the user can manage/cancel their
-// membership, update their card, and view invoices. Stripe owns that UI.
 export async function openBillingPortal(): Promise<void> {
 	const user = await getOrCreateUser();
 	if (!user?.stripeCustomerId) {

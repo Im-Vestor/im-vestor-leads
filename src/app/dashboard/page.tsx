@@ -141,9 +141,6 @@ export default function DashboardPage() {
 	);
 	const [api, setApi] = useState<CarouselApi>();
 
-	// Firefox safeguard: late layout shifts (external images, font swap) invalidate
-	// Embla's measurements and stall the auto-scroll. Re-measure and resume once the
-	// page (and its images) finish loading.
 	useEffect(() => {
 		if (!api) return;
 
@@ -177,7 +174,6 @@ export default function DashboardPage() {
 
 	return (
 		<section className="mx-auto max-w-content px-6 pb-16">
-			{/* Featured carousel */}
 			{featured.length > 0 && (
 				<section className="mb-10">
 					<div className="mb-4 flex items-center gap-2">
@@ -201,7 +197,6 @@ export default function DashboardPage() {
 				</section>
 			)}
 
-			{/* Search header */}
 			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
 				<div>
 					<h1 className="font-semibold text-2xl tracking-tight">
@@ -251,7 +246,6 @@ export default function DashboardPage() {
 				</div>
 			</div>
 
-			{/* Project grid */}
 			{filtered.length > 0 ? (
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					{filtered.map((p) => (

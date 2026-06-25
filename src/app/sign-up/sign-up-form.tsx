@@ -27,9 +27,7 @@ import {
 import { completeSignup } from "./actions";
 
 type SignUpFormProps = {
-	/** Called after the account is fully created. Defaults to navigating to /dashboard. */
 	onSuccess?: () => void;
-	/** When set, the "Sign in" link becomes an in-place toggle instead of a route change. */
 	onSwitchToSignIn?: () => void;
 };
 

@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --container-content: 90rem; /* 1440px — max content width */
+  --container-content: 90rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -49,7 +49,6 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Single dark palette. Light mode removed for now — :root is dark. */
 :root {
   --background: #030014;
   --foreground: oklch(0.987 0.002 197.1);
@@ -134,12 +133,10 @@
   animation: breathe-slow 6s ease-in-out infinite;
 }
 
-/* Gold brand gradient used by the landing page */
 .bg-primary-gradient {
   background-image: linear-gradient(to right, #edd689, #d3b662);
 }
 
-/* Marquee (partners) animations */
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(calc(-100% - var(--gap))); }
@@ -166,7 +163,6 @@
     @apply bg-background text-foreground;
     position: relative;
   }
-  /* Platform-wide ambient glow — same gold radial used on the landing page */
   body::before {
     content: "";
     position: fixed;
