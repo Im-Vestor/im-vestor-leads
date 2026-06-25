@@ -56,10 +56,10 @@ export function ShopClient({ products }: { products: ShopProduct[] }) {
 		}
 	}, []);
 
-	async function buy(product: ShopProduct) {
+	async function buy(product: ShopProduct, recurring: boolean) {
 		setLoadingId(product.id);
 		try {
-			const result = await createCheckoutSession(product.id);
+			const result = await createCheckoutSession(product.id, recurring);
 			if (result.ok) {
 				window.location.href = result.url;
 				return;
@@ -83,42 +83,82 @@ export function ShopClient({ products }: { products: ShopProduct[] }) {
 							{section.title}
 						</h2>
 						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-							{items.map((product) => {
-								const unavailable = !product.priceId;
-								const isLoading = loadingId === product.id;
-								return (
-									<Card key={product.id} className="flex flex-col">
-										<CardHeader>
-											<CardTitle>{product.name}</CardTitle>
-											<CardDescription>{product.description}</CardDescription>
-										</CardHeader>
-										<CardContent className="flex-grow">
-											<p className="font-bold text-2xl tracking-tight">
-												{product.priceLabel}
-											</p>
-										</CardContent>
-										<CardFooter>
-											<Button
-												className="w-full"
-												disabled={unavailable || isLoading}
-												onClick={() => buy(product)}
-											>
-												{unavailable
-													? "Coming soon"
-													: isLoading
-														? "Processing…"
-														: product.mode === "subscription"
-															? "Subscribe"
-															: "Buy now"}
-											</Button>
-										</CardFooter>
-									</Card>
-								);
-							})}
+							{items.map((product) => (
+								<ProductCard
+									key={product.id}
+									product={product}
+									isLoading={loadingId === product.id}
+									onBuy={buy}
+								/>
+							))}
 						</div>
 					</section>
 				);
 			})}
 		</div>
+	);
+}
+
+function ProductCard({
+	product,
+	isLoading,
+	onBuy,
+}: {
+	product: ShopProduct;
+	isLoading: boolean;
+	onBuy: (product: ShopProduct, recurring: boolean) => void;
+}) {
+	const [recurring, setRecurring] = useState(false);
+	const activePriceId = recurring ? product.recurring?.priceId : product.priceId;
+	const priceLabel =
+		recurring && product.recurring
+			? product.recurring.priceLabel
+			: product.priceLabel;
+	const unavailable = !activePriceId;
+	const isSubscription = recurring || product.mode === "subscription";
+
+	return (
+		<Card className="flex flex-col">
+			<CardHeader>
+				<CardTitle>{product.name}</CardTitle>
+				<CardDescription>{product.description}</CardDescription>
+			</CardHeader>
+			<CardContent className="flex-grow space-y-3">
+				{product.recurring ? (
+					<div className="inline-flex rounded-md border p-0.5 text-sm">
+						<button
+							type="button"
+							onClick={() => setRecurring(false)}
+							className={`rounded px-3 py-1 ${recurring ? "text-muted-foreground" : "bg-secondary"}`}
+						>
+							One-time
+						</button>
+						<button
+							type="button"
+							onClick={() => setRecurring(true)}
+							className={`rounded px-3 py-1 ${recurring ? "bg-secondary" : "text-muted-foreground"}`}
+						>
+							Monthly
+						</button>
+					</div>
+				) : null}
+				<p className="font-bold text-2xl tracking-tight">{priceLabel}</p>
+			</CardContent>
+			<CardFooter>
+				<Button
+					className="w-full"
+					disabled={unavailable || isLoading}
+					onClick={() => onBuy(product, recurring)}
+				>
+					{unavailable
+						? "Coming soon"
+						: isLoading
+							? "Processing…"
+							: isSubscription
+								? "Subscribe"
+								: "Buy now"}
+				</Button>
+			</CardFooter>
+		</Card>
 	);
 }

@@ -57,6 +57,8 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
 	switch (event.type) {
 		case "checkout.session.completed":
 			return fulfillCheckout(event);
+		case "invoice.paid":
+			return fulfillInvoice(event);
 		case "customer.subscription.updated":
 		case "customer.subscription.deleted":
 			return syncSubscription(event);
@@ -79,6 +81,8 @@ async function fulfillCheckout(event: Stripe.Event): Promise<void> {
 		return;
 	}
 
+	const pokeSubscription = session.mode === "subscription" && !grant.plan;
+
 	await prisma.$transaction([
 		prisma.processedStripeEvent.create({
 			data: { id: session.id, type: event.type },
@@ -86,8 +90,12 @@ async function fulfillCheckout(event: Stripe.Event): Promise<void> {
 		prisma.user.updateMany({
 			where: { id: userId },
 			data: {
-				pokes: { increment: grant.pokes ?? 0 },
-				leadCredits: { increment: grant.leadCredits ?? 0 },
+				...(pokeSubscription
+					? {}
+					: {
+							pokes: { increment: grant.pokes ?? 0 },
+							leadCredits: { increment: grant.leadCredits ?? 0 },
+						}),
 				...(grant.plan
 					? { subscriptionPlan: grant.plan, subscriptionStatus: "active" }
 					: {}),
@@ -95,6 +103,26 @@ async function fulfillCheckout(event: Stripe.Event): Promise<void> {
 					? { stripeCustomerId: customerId(session.customer) }
 					: {}),
 			},
+		}),
+	]);
+}
+
+async function fulfillInvoice(event: Stripe.Event): Promise<void> {
+	const invoice = event.data.object as Stripe.Invoice;
+	const meta = invoice.parent?.subscription_details?.metadata;
+	const userId = meta?.userId;
+	const productId = meta?.productId;
+	const grant = productId ? PRODUCT_GRANTS[productId] : undefined;
+
+	if (!userId || !grant || grant.plan || !grant.pokes) return;
+
+	await prisma.$transaction([
+		prisma.processedStripeEvent.create({
+			data: { id: invoice.id, type: event.type },
+		}),
+		prisma.user.updateMany({
+			where: { id: userId },
+			data: { pokes: { increment: grant.pokes } },
 		}),
 	]);
 }

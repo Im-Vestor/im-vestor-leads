@@ -27,6 +27,10 @@ export type ShopProduct = {
 	priceId: string | undefined;
 	mode: "payment" | "subscription";
 	category: ShopCategory;
+	recurring?: {
+		priceLabel: string;
+		priceId: string | undefined;
+	};
 };
 
 export const SHOP_PRODUCTS: ShopProduct[] = [
@@ -56,6 +60,10 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_3,
 		mode: "payment",
 		category: "pokes",
+		recurring: {
+			priceLabel: "€29.99 / month",
+			priceId: env.STRIPE_PRICE_POKE_PACK_3_MONTHLY,
+		},
 	},
 	{
 		id: "poke-pack-5",
@@ -65,6 +73,10 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_5,
 		mode: "payment",
 		category: "pokes",
+		recurring: {
+			priceLabel: "€39.99 / month",
+			priceId: env.STRIPE_PRICE_POKE_PACK_5_MONTHLY,
+		},
 	},
 	{
 		id: "poke-pack-10",
@@ -74,6 +86,10 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_10,
 		mode: "payment",
 		category: "pokes",
+		recurring: {
+			priceLabel: "€49.99 / month",
+			priceId: env.STRIPE_PRICE_POKE_PACK_10_MONTHLY,
+		},
 	},
 	{
 		id: "lead-credit",

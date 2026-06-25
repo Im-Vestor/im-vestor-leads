@@ -20,13 +20,18 @@ async function getOrigin(): Promise<string> {
 
 export async function createCheckoutSession(
 	productId: string,
+	recurring = false,
 ): Promise<CheckoutResult> {
 	const user = await getOrCreateUser();
 	if (!user) return { ok: false, error: "You must be signed in to buy." };
 
 	const product = getShopProduct(productId);
 	if (!product) return { ok: false, error: "Unknown product." };
-	if (!product.priceId) {
+
+	const useRecurring = recurring && !!product.recurring;
+	const priceId = useRecurring ? product.recurring?.priceId : product.priceId;
+	const mode = useRecurring ? "subscription" : product.mode;
+	if (!priceId) {
 		return {
 			ok: false,
 			error: `${product.name} is not available yet (no Stripe price configured).`,
@@ -37,17 +42,22 @@ export async function createCheckoutSession(
 		const stripe = getStripe();
 		const origin = await getOrigin();
 
+		const metadata = {
+			userId: user.id,
+			clerkId: user.clerkId,
+			productId: product.id,
+		};
+
 		const session = await stripe.checkout.sessions.create({
-			mode: product.mode,
-			line_items: [{ price: product.priceId, quantity: 1 }],
+			mode,
+			line_items: [{ price: priceId, quantity: 1 }],
 			customer_email: user.email || undefined,
 			success_url: `${origin}/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
 			cancel_url: `${origin}/shop?checkout=cancelled`,
-			metadata: {
-				userId: user.id,
-				clerkId: user.clerkId,
-				productId: product.id,
-			},
+			metadata,
+			...(mode === "subscription"
+				? { subscription_data: { metadata } }
+				: {}),
 		});
 
 		if (!session.url) {
