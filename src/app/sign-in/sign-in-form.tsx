@@ -35,6 +35,10 @@ export function SignInForm({
 				toast.error(clerkError(attempt.error) ?? "Could not sign in");
 				return;
 			}
+			if (signIn.status !== "complete") {
+				toast.error("Additional verification is required to sign in.");
+				return;
+			}
 			const finalized = await signIn.finalize();
 			if (finalized.error) {
 				toast.error(clerkError(finalized.error) ?? "Could not sign in");

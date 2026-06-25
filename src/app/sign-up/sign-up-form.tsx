@@ -91,11 +91,17 @@ export function SignUpForm({
 				toast.error(clerkError(verified.error) ?? "Invalid code");
 				return;
 			}
+			if (signUp.status !== "complete") {
+				toast.error("Your verification code expired. Start sign-up again.");
+				setStep("details");
+				return;
+			}
 			const finalized = await signUp.finalize();
 			if (finalized.error) {
 				toast.error(clerkError(finalized.error) ?? "Could not finish sign-up");
 				return;
 			}
+			await signUp.reset();
 
 			const result = await completeSignup({
 				email,
