@@ -8,7 +8,6 @@ import {
 	useState,
 } from "react";
 
-// Supported languages
 export type Language =
 	| "en-US"
 	| "pt-PT"
@@ -47,7 +46,6 @@ type LanguageProviderProps = {
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
 	const [language, setLanguage] = useState<Language>("en-US");
 
-	// Load saved language on mount
 	useEffect(() => {
 		const savedLanguage = localStorage.getItem("language") as Language;
 		if (savedLanguage && LANGUAGES.some((l) => l.code === savedLanguage)) {
@@ -55,7 +53,6 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
 		}
 	}, []);
 
-	// Persist language on change
 	useEffect(() => {
 		localStorage.setItem("language", language);
 	}, [language]);

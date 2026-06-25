@@ -1,10 +1,6 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
 
-/**
- * Upload a file via the `upload-file` Supabase Edge Function and return the
- * resulting public image URL. Ported from im-vestor-full.
- */
 export async function sendImageToBackend(file: File, userId: string) {
 	const formData = new FormData();
 	formData.append("file", file);
