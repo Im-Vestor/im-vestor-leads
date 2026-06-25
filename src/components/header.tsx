@@ -8,15 +8,13 @@ import {
 	LogOutIcon,
 	type LucideIcon,
 	MessageSquareIcon,
-	MoonIcon,
 	SearchIcon,
-	SunIcon,
+	ShoppingBagIcon,
 	UserIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 import { getMyUserId } from "@/app/messages/notifications.actions";
@@ -48,6 +46,7 @@ const NAV_LINKS = [
 	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
 	{ label: "Inbox", icon: BellIcon },
 	{ href: "/messages", label: "Chats", icon: MessageSquareIcon },
+	{ href: "/shop", label: "Shop", icon: ShoppingBagIcon },
 ] satisfies { href?: string; label: string; icon: LucideIcon }[];
 
 export const Header = () => {
@@ -142,7 +141,6 @@ const UserMenu = () => {
 					<UserIcon className="size-4" />
 					Profile
 				</DropdownMenuItem>
-				<ThemeMenuItem />
 				<LanguageMenu />
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
@@ -154,22 +152,6 @@ const UserMenu = () => {
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
-	);
-};
-
-const ThemeMenuItem = () => {
-	const { resolvedTheme, setTheme } = useTheme();
-	const isDark = resolvedTheme === "dark";
-
-	return (
-		<DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")}>
-			{isDark ? (
-				<SunIcon className="size-4" />
-			) : (
-				<MoonIcon className="size-4" />
-			)}
-			{isDark ? "Light mode" : "Dark mode"}
-		</DropdownMenuItem>
 	);
 };
 

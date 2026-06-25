@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { DM_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
@@ -28,8 +27,8 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			suppressHydrationWarning
 			className={cn(
+				"dark",
 				"h-full",
 				"antialiased",
 				geistMono.variable,
@@ -38,22 +37,15 @@ export default function RootLayout({
 			)}
 		>
 			<body className="min-h-full flex flex-col">
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="dark"
-					enableSystem={false}
-					disableTransitionOnChange
-				>
-					<ClerkProvider>
-						<LanguageProvider>
-							<div className="px-4 pt-4 md:px-6 lg:px-8">
-								<Header />
-							</div>
-							{children}
-							<Toaster />
-						</LanguageProvider>
-					</ClerkProvider>
-				</ThemeProvider>
+				<ClerkProvider>
+					<LanguageProvider>
+						<div className="px-4 pt-4 md:px-6 lg:px-8">
+							<Header />
+						</div>
+						{children}
+						<Toaster />
+					</LanguageProvider>
+				</ClerkProvider>
 			</body>
 		</html>
 	);
