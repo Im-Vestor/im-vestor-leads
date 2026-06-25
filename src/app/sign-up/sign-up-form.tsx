@@ -38,7 +38,6 @@ export function SignUpForm({
 	const { signUp } = useSignUp();
 	const router = useRouter();
 
-	const [step, setStep] = useState<"details" | "verify">("details");
 	const [submitting, setSubmitting] = useState(false);
 
 	const [email, setEmail] = useState("");
@@ -49,7 +48,6 @@ export function SignUpForm({
 	const [referredByCode, setReferredByCode] = useState("");
 	const [capacity, setCapacity] = useState<InvestmentRange | "">("");
 	const [sectors, setSectors] = useState<Sector[]>([]);
-	const [code, setCode] = useState("");
 
 	const isInvestor = role === "INVESTOR";
 
@@ -59,39 +57,17 @@ export function SignUpForm({
 		);
 	}
 
-	async function onSubmitDetails(e: React.FormEvent) {
+	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		setSubmitting(true);
 		try {
 			const created = await signUp.password({ emailAddress: email, password });
 			if (created.error) {
-				toast.error(clerkError(created.error) ?? "Could not start sign-up");
-				return;
-			}
-			const sent = await signUp.verifications.sendEmailCode();
-			if (sent.error) {
-				toast.error(clerkError(sent.error) ?? "Could not send the code");
-				return;
-			}
-			setStep("verify");
-			toast.success("Check your email for a verification code");
-		} finally {
-			setSubmitting(false);
-		}
-	}
-
-	async function onSubmitCode(e: React.FormEvent) {
-		e.preventDefault();
-		setSubmitting(true);
-		try {
-			const verified = await signUp.verifications.verifyEmailCode({ code });
-			if (verified.error) {
-				toast.error(clerkError(verified.error) ?? "Invalid code");
+				toast.error(clerkError(created.error) ?? "Could not sign up");
 				return;
 			}
 			if (signUp.status !== "complete") {
-				toast.error("Your verification code expired. Start sign-up again.");
-				setStep("details");
+				toast.error("Could not complete sign-up. Try again.");
 				return;
 			}
 			const finalized = await signUp.finalize();
@@ -125,32 +101,8 @@ export function SignUpForm({
 		}
 	}
 
-	if (step === "verify") {
-		return (
-			<form onSubmit={onSubmitCode} className="flex flex-col gap-4">
-				<div className="flex flex-col gap-2">
-					<Label htmlFor="code">Verification code</Label>
-					<Input
-						id="code"
-						inputMode="numeric"
-						autoComplete="one-time-code"
-						placeholder="123456"
-						value={code}
-						onChange={(e) => setCode(e.target.value)}
-						required
-					/>
-					<p className="text-sm text-muted-foreground">Sent to {email}.</p>
-				</div>
-				<div id="clerk-captcha" />
-				<Button type="submit" disabled={submitting}>
-					{submitting ? "Verifying…" : "Verify & create account"}
-				</Button>
-			</form>
-		);
-	}
-
 	return (
-		<form onSubmit={onSubmitDetails} className="flex flex-col gap-5">
+		<form onSubmit={onSubmit} className="flex flex-col gap-5">
 			<div className="flex flex-col gap-2">
 				<Label htmlFor="email">Email</Label>
 				<Input
