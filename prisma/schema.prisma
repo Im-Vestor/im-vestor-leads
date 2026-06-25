@@ -57,11 +57,10 @@ model User {
   investmentCapacity InvestmentRange?
   sectors            Sector[]
 
-  // Shop / Stripe
   pokes              Int     @default(1)
   leadCredits        Int     @default(0)
-  subscriptionPlan   String? // "monthly" | "annual" | null
-  subscriptionStatus String? // Stripe subscription status, when applicable
+  subscriptionPlan   String?
+  subscriptionStatus String?
   stripeCustomerId   String? @unique
 
   lastSeenAt DateTime?
@@ -119,7 +118,7 @@ model Notification {
 }
 
 model ProcessedStripeEvent {
-  id        String   @id // Stripe event id (evt_...) — guards against duplicate delivery
+  id        String   @id
   type      String
   createdAt DateTime @default(now())
 
