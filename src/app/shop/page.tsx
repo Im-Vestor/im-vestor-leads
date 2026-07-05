@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Wallet } from "@/app/profile/wallet";
-import { SHOP_PRODUCTS } from "@/lib/stripe";
+import { getActivePokeProductId, SHOP_PRODUCTS } from "@/lib/stripe";
 import { getOrCreateUser } from "@/lib/user";
 import { ShopClient } from "./shop-client";
 
@@ -13,6 +13,15 @@ export const metadata: Metadata = {
 export default async function ShopPage() {
 	const user = await getOrCreateUser();
 	if (!user) redirect("/sign-in");
+
+	let activePokePlan: string | null = null;
+	if (user.stripeCustomerId) {
+		try {
+			activePokePlan = await getActivePokeProductId(user.stripeCustomerId);
+		} catch {
+			activePokePlan = null;
+		}
+	}
 
 	return (
 		<main className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
@@ -32,7 +41,11 @@ export default async function ShopPage() {
 				showBuyMore={false}
 			/>
 
-			<ShopClient products={SHOP_PRODUCTS} />
+			<ShopClient
+				products={SHOP_PRODUCTS}
+				activePokePlan={activePokePlan}
+				pokeCycleHigh={user.pokeCycleHigh}
+			/>
 		</main>
 	);
 }

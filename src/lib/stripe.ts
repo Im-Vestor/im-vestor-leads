@@ -27,6 +27,7 @@ export type ShopProduct = {
 	priceId: string | undefined;
 	mode: "payment" | "subscription";
 	category: ShopCategory;
+	pokes?: number;
 	recurring?: {
 		priceLabel: string;
 		priceId: string | undefined;
@@ -60,6 +61,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_3,
 		mode: "payment",
 		category: "pokes",
+		pokes: 3,
 		recurring: {
 			priceLabel: "€29.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_3_MONTHLY,
@@ -73,6 +75,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_5,
 		mode: "payment",
 		category: "pokes",
+		pokes: 5,
 		recurring: {
 			priceLabel: "€39.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_5_MONTHLY,
@@ -86,6 +89,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_POKE_PACK_10,
 		mode: "payment",
 		category: "pokes",
+		pokes: 10,
 		recurring: {
 			priceLabel: "€49.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_10_MONTHLY,
@@ -122,3 +126,32 @@ export const PRODUCT_GRANTS: Record<string, ProductGrant> = {
 	"poke-pack-10": { pokes: 10 },
 	"lead-credit": { leadCredits: 1 },
 };
+
+export function isPokeGrant(grant: ProductGrant | undefined): boolean {
+	return Boolean(grant && !grant.plan && grant.pokes);
+}
+
+export async function findActivePokeSubscription(
+	customerId: string,
+): Promise<Stripe.Subscription | null> {
+	const subs = await getStripe().subscriptions.list({
+		customer: customerId,
+		limit: 100,
+	});
+	return (
+		subs.data.find((s) => {
+			if (s.status === "canceled" || s.status === "incomplete_expired") {
+				return false;
+			}
+			const pid = s.metadata?.productId;
+			return isPokeGrant(pid ? PRODUCT_GRANTS[pid] : undefined);
+		}) ?? null
+	);
+}
+
+export async function getActivePokeProductId(
+	customerId: string,
+): Promise<string | null> {
+	const sub = await findActivePokeSubscription(customerId);
+	return sub?.metadata?.productId ?? null;
+}

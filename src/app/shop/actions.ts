@@ -2,7 +2,12 @@
 
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { getShopProduct, getStripe } from "@/lib/stripe";
+import {
+	findActivePokeSubscription,
+	getShopProduct,
+	getStripe,
+	PRODUCT_GRANTS,
+} from "@/lib/stripe";
 import {
 	getCurrentUser,
 	getOrCreateStripeCustomerId,
@@ -44,6 +49,20 @@ export async function createCheckoutSession(
 	try {
 		const stripe = getStripe();
 		const origin = await getOrigin();
+
+		if (
+			useRecurring &&
+			product.category === "pokes" &&
+			user.stripeCustomerId &&
+			(await findActivePokeSubscription(user.stripeCustomerId))
+		) {
+			return {
+				ok: false,
+				error:
+					"You already have an active poke plan. Use Switch to change plans instead.",
+			};
+		}
+
 		const customer = await getOrCreateStripeCustomerId(user);
 
 		const price = await stripe.prices.retrieve(priceId);
@@ -62,9 +81,7 @@ export async function createCheckoutSession(
 			success_url: `${origin}/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
 			cancel_url: `${origin}/shop?checkout=cancelled`,
 			metadata,
-			...(mode === "subscription"
-				? { subscription_data: { metadata } }
-				: {}),
+			...(mode === "subscription" ? { subscription_data: { metadata } } : {}),
 		});
 
 		if (!session.url) {
@@ -101,5 +118,92 @@ export async function confirmCheckout(
 	} catch (err) {
 		console.error("[shop] confirm error:", err);
 		return { status: "error" };
+	}
+}
+
+export type PlanChangeResult = { ok: true } | { ok: false; error: string };
+
+export async function changePokePlan(
+	targetProductId: string,
+): Promise<PlanChangeResult> {
+	const user = await getCurrentUser();
+	if (!user?.stripeCustomerId) {
+		return { ok: false, error: "You don't have an active poke plan." };
+	}
+
+	const target = getShopProduct(targetProductId);
+	if (!target) return { ok: false, error: "Invalid target plan." };
+	if (
+		target.category !== "pokes" ||
+		!target.recurring?.priceId ||
+		!PRODUCT_GRANTS[targetProductId]
+	) {
+		return { ok: false, error: "Invalid target plan." };
+	}
+
+	try {
+		const stripe = getStripe();
+		const sub = await findActivePokeSubscription(user.stripeCustomerId);
+		if (!sub)
+			return { ok: false, error: "You don't have an active poke plan." };
+
+		const currentProductId = sub.metadata?.productId;
+		if (currentProductId === targetProductId) {
+			return { ok: false, error: "That's already your current plan." };
+		}
+
+		const currentPokes = currentProductId
+			? (PRODUCT_GRANTS[currentProductId]?.pokes ?? 0)
+			: 0;
+		const targetPokes = PRODUCT_GRANTS[targetProductId]?.pokes ?? 0;
+		const cycleHigh = Math.max(user.pokeCycleHigh, currentPokes);
+		const creditDelta = Math.max(0, targetPokes - cycleHigh);
+
+		const itemId = sub.items.data[0]?.id;
+		if (!itemId) {
+			return { ok: false, error: "Could not read your subscription." };
+		}
+
+		const updated = await stripe.subscriptions.update(sub.id, {
+			items: [{ id: itemId, price: target.recurring.priceId }],
+			proration_behavior: creditDelta > 0 ? "always_invoice" : "none",
+			metadata: { ...sub.metadata, productId: targetProductId },
+			expand: ["latest_invoice"],
+		});
+
+		if (creditDelta > 0) {
+			const invoice =
+				updated.latest_invoice && typeof updated.latest_invoice === "object"
+					? updated.latest_invoice
+					: null;
+			if (invoice?.id && invoice.status === "paid") {
+				try {
+					await prisma.$transaction([
+						prisma.processedStripeEvent.create({
+							data: { id: invoice.id, type: "poke_upgrade" },
+						}),
+						prisma.user.updateMany({
+							where: { id: user.id },
+							data: {
+								pokes: { increment: creditDelta },
+								pokeCycleHigh: targetPokes,
+							},
+						}),
+					]);
+				} catch (err) {
+					if ((err as { code?: string })?.code !== "P2002") throw err;
+				}
+			}
+		} else if (cycleHigh > user.pokeCycleHigh) {
+			await prisma.user.updateMany({
+				where: { id: user.id },
+				data: { pokeCycleHigh: cycleHigh },
+			});
+		}
+
+		return { ok: true };
+	} catch (err) {
+		console.error("[shop] change plan error:", err);
+		return { ok: false, error: "Could not change your plan. Try again." };
 	}
 }
