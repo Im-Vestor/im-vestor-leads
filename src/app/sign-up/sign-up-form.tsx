@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+import { useClerk, useSignUp } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,6 +36,7 @@ export function SignUpForm({
 	onSwitchToSignIn,
 }: SignUpFormProps = {}) {
 	const { signUp } = useSignUp();
+	const clerk = useClerk();
 	const router = useRouter();
 
 	const [submitting, setSubmitting] = useState(false);
@@ -90,6 +91,7 @@ export function SignUpForm({
 				toast.error(result.error);
 				return;
 			}
+			await clerk.user?.reload();
 			toast.success("Welcome to IM-VESTOR!");
 			if (onSuccess) {
 				onSuccess();

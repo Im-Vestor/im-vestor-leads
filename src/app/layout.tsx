@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { DM_Sans, Geist_Mono } from "next/font/google";
+import { DM_Sans, Fraunces, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,6 +8,8 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
+
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
@@ -33,6 +35,7 @@ export default function RootLayout({
 				"h-full",
 				"antialiased",
 				geistMono.variable,
+				fraunces.variable,
 				"font-sans",
 				dmSans.variable,
 			)}

@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { getOrCreateUser } from "@/lib/user";
+import { getOrCreateUser, syncNameToClerk } from "@/lib/user";
 
 const sectorValues = [
 	"TECHNOLOGY",
@@ -73,6 +73,8 @@ export async function updateProfile(
 	} catch {
 		return { ok: false, error: "Could not save your profile" };
 	}
+
+	await syncNameToClerk(userId, data.name?.trim() || null);
 
 	revalidatePath("/profile");
 	return { ok: true };

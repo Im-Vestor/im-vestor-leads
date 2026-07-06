@@ -5,12 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --container-content: 90rem;
+  --container-content: 72rem; /* = max-w-6xl: page content never exceeds this */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-fraunces);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,39 +51,44 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Im-Vestor "gilt prospectus" theme: void navy page, velvet violet cards
+   (rgb(29 26 44 / .55), from im-vestor-full), gold #EDD689→#D3B662 as the
+   single accent. All neutrals sit at violet hue ~295, never neutral gray. */
 :root {
 	--background: #030014;
-	--foreground: oklch(0.987 0.002 197.1);
-	--card: oklch(0.218 0.008 223.9);
-	--card-foreground: oklch(0.987 0.002 197.1);
-	--popover: oklch(0.218 0.008 223.9);
-	--popover-foreground: oklch(0.987 0.002 197.1);
-	--primary: oklch(0.925 0.005 214.3);
-	--primary-foreground: oklch(0.218 0.008 223.9);
-	--secondary: oklch(0.275 0.011 216.9);
-	--secondary-foreground: oklch(0.987 0.002 197.1);
-	--muted: oklch(0.275 0.011 216.9);
-	--muted-foreground: oklch(0.723 0.014 214.4);
-	--accent: oklch(0.925 0.005 214.3);
-	--accent-foreground: oklch(0.218 0.008 223.9);
+	--foreground: oklch(0.985 0.006 95);
+	--card: oklch(0.235 0.045 295 / 55%);
+	--card-foreground: oklch(0.985 0.006 95);
+	--popover: oklch(0.245 0.042 295);
+	--popover-foreground: oklch(0.985 0.006 95);
+	--primary: oklch(0.88 0.095 94);
+	--primary-foreground: oklch(0.2 0.035 295);
+	--secondary: oklch(0.3 0.04 295);
+	--secondary-foreground: oklch(0.985 0.006 95);
+	--muted: oklch(0.29 0.035 295);
+	--muted-foreground: oklch(0.73 0.03 300);
+	--accent: oklch(0.33 0.05 295);
+	--accent-foreground: oklch(0.985 0.006 95);
 	--destructive: oklch(0.704 0.191 22.216);
 	--border: oklch(1 0 0 / 10%);
 	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.56 0.021 213.5);
-	--chart-1: oklch(0.865 0.127 207.078);
-	--chart-2: oklch(0.715 0.143 215.221);
-	--chart-3: oklch(0.609 0.126 221.723);
-	--chart-4: oklch(0.52 0.105 223.128);
-	--chart-5: oklch(0.45 0.085 224.283);
+	--ring: oklch(0.8 0.1 92);
+	--gold: #edd689;
+	--gold-deep: #d3b662;
+	--chart-1: oklch(0.88 0.095 94);
+	--chart-2: oklch(0.79 0.105 92);
+	--chart-3: oklch(0.62 0.12 300);
+	--chart-4: oklch(0.5 0.1 298);
+	--chart-5: oklch(0.42 0.07 296);
 	--radius: 0.45rem;
-	--sidebar: oklch(0.218 0.008 223.9);
-	--sidebar-foreground: oklch(0.987 0.002 197.1);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.987 0.002 197.1);
-	--sidebar-accent: oklch(0.275 0.011 216.9);
-	--sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+	--sidebar: oklch(0.245 0.042 295);
+	--sidebar-foreground: oklch(0.985 0.006 95);
+	--sidebar-primary: oklch(0.88 0.095 94);
+	--sidebar-primary-foreground: oklch(0.2 0.035 295);
+	--sidebar-accent: oklch(0.33 0.05 295);
+	--sidebar-accent-foreground: oklch(0.985 0.006 95);
 	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.56 0.021 213.5);
+	--sidebar-ring: oklch(0.8 0.1 92);
 }
 
 @keyframes breathe {
@@ -233,5 +240,14 @@
 	}
 	html {
 		@apply font-sans;
+	}
+	/* Hide native number-input spinners */
+	input[type="number"] {
+		appearance: textfield;
+	}
+	input[type="number"]::-webkit-inner-spin-button,
+	input[type="number"]::-webkit-outer-spin-button {
+		appearance: none;
+		margin: 0;
 	}
 }

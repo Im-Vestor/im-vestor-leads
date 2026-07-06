@@ -1,268 +1,105 @@
-"use client";
+import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
+import { CURRENCY_SYMBOLS } from "../projects/schema";
+import { DashboardClient, type LeadProject } from "./dashboard-client";
 
-import AutoScroll from "embla-carousel-auto-scroll";
-import {
-	LockIcon,
-	SearchIcon,
-	StarIcon,
-	UnlockIcon,
-	ZapIcon,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+const VALUE_FILTERS = [
+	{ key: "10k-50k", label: "€10K–€50K", min: 10_000, max: 50_000 },
+	{ key: "50k-200k", label: "€50K–€200K", min: 50_000, max: 200_000 },
+	{ key: "200k-500k", label: "€200K–€500K", min: 200_000, max: 500_000 },
+	{ key: "500k-1m", label: "€500K–€1M", min: 500_000, max: 1_000_000 },
+	{ key: "1m-5m", label: "€1M–€5M", min: 1_000_000, max: 5_000_000 },
+	{ key: "5m+", label: "€5M+", min: 5_000_000, max: null },
+] as const;
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
-	type CarouselApi,
-	Carousel,
-	CarouselContent,
-	CarouselItem,
-} from "@/components/ui/carousel";
-import {
-	Empty,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyMedia,
-	EmptyTitle,
-} from "@/components/ui/empty";
-import {
-	NativeSelect,
-	NativeSelectOption,
-} from "@/components/ui/native-select";
-import {
-	COUNTRIES,
-	PROJECTS,
-	type Project,
-	SECTORS,
-	VALUE_RANGES,
-} from "@/lib/leads-data";
+const compact = new Intl.NumberFormat("en", { notation: "compact" });
 
-function ProjectMeta({ project }: { project: Project }) {
-	return (
-		<div className="flex flex-wrap gap-1.5">
-			<Badge variant="secondary">{project.sector}</Badge>
-			<Badge variant="secondary">{project.value}</Badge>
-			<Badge variant="outline">{project.country}</Badge>
-		</div>
-	);
+type ProjectWithRefs = Prisma.ProjectGetPayload<{
+	include: {
+		areas: { select: { name: true } };
+		media: { select: { url: true; caption: true } };
+	};
+}>;
+
+function toLead(project: ProjectWithRefs): LeadProject {
+	const cover = project.media[0] ?? null;
+	return {
+		id: project.id,
+		name: project.name,
+		desc: project.quickSolution ?? project.about ?? "",
+		areaNames: project.areas.map((a) => a.name),
+		valueLabel: `${CURRENCY_SYMBOLS[project.currency]}${compact.format(project.investmentGoal)}`,
+		country: project.country,
+		date: project.createdAt.toISOString().slice(0, 10),
+		cover: cover
+			? { url: cover.url, alt: cover.caption ?? project.name }
+			: project.logo
+				? { url: project.logo, alt: project.name }
+				: null,
+	};
 }
 
-function FeaturedCard({ project }: { project: Project }) {
-	const cover = project.media[0];
-	return (
-		<Card className="overflow-hidden pt-0">
-			{cover ? (
-				// biome-ignore lint/performance/noImgElement: external unsplash preview
-				<img
-					src={cover.url}
-					alt={cover.name}
-					width={640}
-					height={160}
-					className="h-40 w-full object-cover"
-				/>
-			) : (
-				<div className="flex h-40 w-full items-center justify-center bg-muted">
-					<StarIcon className="size-8 text-muted-foreground" />
-				</div>
-			)}
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
-					{project.title}
-					<Badge>
-						<StarIcon /> Featured
-					</Badge>
-				</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-3">
-				<ProjectMeta project={project} />
-				<CardDescription className="line-clamp-3">
-					{project.desc}
-				</CardDescription>
-			</CardContent>
-		</Card>
-	);
-}
+export default async function DashboardPage({
+	searchParams,
+}: {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+	const sp = await searchParams;
+	const sector = typeof sp.sector === "string" ? sp.sector : "";
+	const country = typeof sp.country === "string" ? sp.country : "";
+	const value = typeof sp.value === "string" ? sp.value : "";
+	const range = VALUE_FILTERS.find((f) => f.key === value);
 
-function ProjectCard({ project }: { project: Project }) {
-	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
-					<LockIcon className="size-4 text-muted-foreground" />
-					{project.title}
-				</CardTitle>
-				<div className="pt-1">
-					<ProjectMeta project={project} />
-				</div>
-			</CardHeader>
-			<CardContent className="space-y-3">
-				<CardDescription className="line-clamp-3">
-					{project.desc}
-				</CardDescription>
-				<div className="flex items-center gap-2 rounded-md border border-dashed p-2.5 text-muted-foreground text-xs">
-					<LockIcon className="size-3.5 shrink-0" />
-					Media and full profile locked. Send a poke or unlock the lead.
-				</div>
-			</CardContent>
-			<CardFooter className="justify-between">
-				<span className="text-muted-foreground text-xs">{project.date}</span>
-				<div className="flex gap-2">
-					<Button variant="outline" size="sm">
-						<ZapIcon /> Poke
-					</Button>
-					<Button size="sm">
-						<UnlockIcon /> Unlock €24.99
-					</Button>
-				</div>
-			</CardFooter>
-		</Card>
-	);
-}
+	// ponytail: filters compare raw amounts across currencies; add FX conversion if non-EUR projects grow
+	const where: Prisma.ProjectWhereInput = {
+		status: "PUBLISHED",
+		...(sector ? { areas: { some: { id: sector } } } : {}),
+		...(country ? { country } : {}),
+		...(range
+			? {
+					investmentGoal: {
+						gte: range.min,
+						...(range.max === null ? {} : { lte: range.max }),
+					},
+				}
+			: {}),
+	};
 
-export default function DashboardPage() {
-	const [sector, setSector] = useState("");
-	const [country, setCountry] = useState("");
-	const [value, setValue] = useState("");
+	const include = {
+		areas: { select: { name: true }, orderBy: { name: "asc" } },
+		media: {
+			orderBy: { order: "asc" },
+			take: 1,
+			select: { url: true, caption: true },
+		},
+	} satisfies Prisma.ProjectInclude;
 
-	const autoScroll = useRef(
-		AutoScroll({
-			speed: 1,
-			stopOnInteraction: false,
-			stopOnMouseEnter: true,
+	const [areas, projects, featured] = await Promise.all([
+		prisma.area.findMany({
+			orderBy: { name: "asc" },
+			select: { id: true, name: true },
 		}),
-	);
-	const [api, setApi] = useState<CarouselApi>();
-
-	useEffect(() => {
-		if (!api) return;
-
-		const resume = () => {
-			api.reInit();
-			const autoScrollPlugin = api.plugins().autoScroll;
-			if (autoScrollPlugin && !autoScrollPlugin.isPlaying()) {
-				autoScrollPlugin.play();
-			}
-		};
-
-		if (document.readyState === "complete") {
-			resume();
-		} else {
-			window.addEventListener("load", resume);
-			return () => window.removeEventListener("load", resume);
-		}
-	}, [api]);
-
-	const featured = useMemo(() => PROJECTS.filter((p) => p.hyperTrain), []);
-	const filtered = useMemo(
-		() =>
-			PROJECTS.filter(
-				(p) =>
-					(!sector || p.sector === sector) &&
-					(!country || p.country === country) &&
-					(!value || p.value === value),
-			),
-		[sector, country, value],
-	);
+		prisma.project.findMany({
+			where,
+			include,
+			orderBy: { createdAt: "desc" },
+			take: 60,
+		}),
+		prisma.project.findMany({
+			where: { status: "PUBLISHED" },
+			include,
+			orderBy: { createdAt: "desc" },
+			take: 8,
+		}),
+	]);
 
 	return (
-		<section className="mx-auto max-w-content px-6 pb-16">
-			{featured.length > 0 && (
-				<section className="mb-10">
-					<div className="mb-4 flex items-center gap-2">
-						<StarIcon className="size-4" />
-						<h2 className="font-semibold text-lg">Featured Opportunities</h2>
-						<Badge variant="secondary">Hyper Train</Badge>
-					</div>
-					<Carousel
-						setApi={setApi}
-						opts={{ align: "start", loop: true }}
-						plugins={[autoScroll.current]}
-					>
-						<CarouselContent>
-							{featured.map((p) => (
-								<CarouselItem key={p.id} className="md:basis-1/2 lg:basis-1/3">
-									<FeaturedCard project={p} />
-								</CarouselItem>
-							))}
-						</CarouselContent>
-					</Carousel>
-				</section>
-			)}
-
-			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-				<div>
-					<h1 className="font-semibold text-2xl tracking-tight">
-						Discover Leads
-					</h1>
-					<p className="text-muted-foreground text-sm">
-						Browse opportunities by your criteria
-					</p>
-				</div>
-				<div className="flex flex-wrap items-center gap-2">
-					<NativeSelect
-						value={sector}
-						onChange={(e) => setSector(e.target.value)}
-						aria-label="Sector"
-					>
-						<NativeSelectOption value="">All sectors</NativeSelectOption>
-						{SECTORS.map((s) => (
-							<NativeSelectOption key={s} value={s}>
-								{s}
-							</NativeSelectOption>
-						))}
-					</NativeSelect>
-					<NativeSelect
-						value={country}
-						onChange={(e) => setCountry(e.target.value)}
-						aria-label="Country"
-					>
-						<NativeSelectOption value="">All countries</NativeSelectOption>
-						{COUNTRIES.map((c) => (
-							<NativeSelectOption key={c} value={c}>
-								{c}
-							</NativeSelectOption>
-						))}
-					</NativeSelect>
-					<NativeSelect
-						value={value}
-						onChange={(e) => setValue(e.target.value)}
-						aria-label="Value"
-					>
-						<NativeSelectOption value="">All values</NativeSelectOption>
-						{VALUE_RANGES.map((v) => (
-							<NativeSelectOption key={v} value={v}>
-								{v}
-							</NativeSelectOption>
-						))}
-					</NativeSelect>
-				</div>
-			</div>
-
-			{filtered.length > 0 ? (
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					{filtered.map((p) => (
-						<ProjectCard key={p.id} project={p} />
-					))}
-				</div>
-			) : (
-				<Empty className="border border-dashed">
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<SearchIcon />
-						</EmptyMedia>
-						<EmptyTitle>No leads found</EmptyTitle>
-						<EmptyDescription>Try adjusting your filters.</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			)}
-		</section>
+		<DashboardClient
+			areas={areas}
+			valueFilters={VALUE_FILTERS.map(({ key, label }) => ({ key, label }))}
+			featured={featured.map(toLead)}
+			projects={projects.map(toLead)}
+			filters={{ sector, country, value }}
+		/>
 	);
 }

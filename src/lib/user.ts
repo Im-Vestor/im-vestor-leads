@@ -1,5 +1,5 @@
 import "server-only";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { UserRole } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
@@ -12,6 +12,21 @@ function generateReferralCode(seed: string): string {
 		.padEnd(4, "X");
 	const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
 	return `${base}-${suffix}`;
+}
+
+export async function syncNameToClerk(clerkId: string, name: string | null) {
+	if (!name) return;
+	const [firstName, ...rest] = name.split(/\s+/);
+	try {
+		const client = await clerkClient();
+		await client.users.updateUser(clerkId, {
+			firstName,
+			lastName: rest.join(" "),
+		});
+	} catch (error) {
+		// ponytail: Clerk sync is best-effort — DB is source of truth
+		console.error("Failed to sync name to Clerk", error);
+	}
 }
 
 export async function getCurrentUser() {

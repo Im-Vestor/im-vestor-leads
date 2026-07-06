@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import SpotlightCard from "@/components/SpotlightCard";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -282,26 +283,33 @@ function ProductCard({
 						: "Buy now";
 
 	return (
-		<Card className="flex flex-col">
-			<CardHeader>
-				<CardTitle>{product.name}</CardTitle>
-				<CardDescription>{product.description}</CardDescription>
-			</CardHeader>
-			<CardContent className="flex-grow">
-				<p className="font-bold text-2xl tracking-tight">{priceLabel}</p>
-			</CardContent>
-			<CardFooter>
-				<Button
-					className="w-full"
-					variant={canSwitch ? "outline" : "default"}
-					disabled={unavailable || isLoading || isCurrentPlan}
-					onClick={() =>
-						canSwitch ? onSwitch(product) : onBuy(product, recurring)
-					}
-				>
-					{label}
-				</Button>
-			</CardFooter>
-		</Card>
+		<SpotlightCard
+			spotlightColor="rgba(229, 205, 130, 0.15)"
+			className="flex rounded-xl"
+		>
+			<Card
+				className={`flex w-full flex-col ${isCurrentPlan ? "border-[#E5CD82]/40" : ""}`}
+			>
+				<CardHeader>
+					<CardTitle>{product.name}</CardTitle>
+					<CardDescription>{product.description}</CardDescription>
+				</CardHeader>
+				<CardContent className="flex-grow">
+					<p className="font-bold text-2xl tracking-tight">{priceLabel}</p>
+				</CardContent>
+				<CardFooter>
+					<Button
+						className="w-full"
+						variant={canSwitch ? "outline" : "default"}
+						disabled={unavailable || isLoading || isCurrentPlan}
+						onClick={() =>
+							canSwitch ? onSwitch(product) : onBuy(product, recurring)
+						}
+					>
+						{label}
+					</Button>
+				</CardFooter>
+			</Card>
+		</SpotlightCard>
 	);
 }

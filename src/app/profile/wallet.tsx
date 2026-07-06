@@ -1,4 +1,6 @@
 import Link from "next/link";
+import CountUp from "@/components/CountUp";
+import ShinyText from "@/components/ShinyText";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,7 +53,12 @@ export function Wallet({
 						{subscriptionPlan ? (
 							<div className="mt-1 space-y-1.5">
 								<p className="font-semibold text-sm">
-									{PLAN_LABELS[subscriptionPlan] ?? subscriptionPlan}
+									<ShinyText
+										text={PLAN_LABELS[subscriptionPlan] ?? subscriptionPlan}
+										color="#EDD689"
+										shineColor="#ffffff"
+										speed={4}
+									/>
 								</p>
 								<SubscriptionBadge status={subscriptionStatus} />
 							</div>
@@ -88,7 +95,9 @@ function Stat({ label, value }: { label: string; value: number }) {
 			<p className="text-muted-foreground text-xs uppercase tracking-wider">
 				{label}
 			</p>
-			<p className="mt-1 font-bold text-2xl tabular-nums">{value}</p>
+			<p className="mt-1 font-bold text-2xl tabular-nums">
+				<CountUp to={value} duration={1} />
+			</p>
 		</div>
 	);
 }

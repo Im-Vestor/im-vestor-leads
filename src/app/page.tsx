@@ -325,7 +325,7 @@ export default function Home() {
 					</StarField>
 
 					<StarField>
-						<footer className="mx-auto mb-16 mt-16 md:mt-32 w-full max-w-7xl px-6 md:px-12">
+						<footer className="mx-auto mb-16 mt-16 md:mt-32 w-full max-w-content px-6 md:px-12">
 							<hr className="h-0.5 w-full bg-neutral-100 opacity-10" />
 							<div className="my-8 flex w-full flex-col items-center gap-6 text-gray-500 md:flex-row">
 								<p>{t("followUs")}</p>

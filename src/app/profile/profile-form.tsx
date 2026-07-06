@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type {
@@ -37,6 +38,7 @@ type ProfileInitial = {
 };
 
 export function ProfileForm({ initial }: { initial: ProfileInitial }) {
+	const { user } = useUser();
 	const [name, setName] = useState(initial.name);
 	const [country, setCountry] = useState(initial.country);
 	const [capacity, setCapacity] = useState<InvestmentRange | "">(
@@ -62,8 +64,10 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 				investmentCapacity: isInvestor && capacity ? capacity : null,
 				sectors: isInvestor ? sectors : [],
 			});
-			if (result.ok) toast.success("Profile saved");
-			else toast.error(result.error);
+			if (result.ok) {
+				await user?.reload();
+				toast.success("Profile saved");
+			} else toast.error(result.error);
 		});
 	}
 
