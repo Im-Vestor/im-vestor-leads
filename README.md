@@ -87,3 +87,5 @@ src/
 prisma/           Prisma schema and migrations
 docs/             Operational docs (Stripe shop setup)
 ```
+
+TEST
