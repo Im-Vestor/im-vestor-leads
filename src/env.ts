@@ -7,6 +7,7 @@ const serverSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "test", "production"])
 		.default("development"),
+	SUPABASE_SECRET_KEY: z.string().optional(),
 	STRIPE_SECRET_KEY: z.string().optional(),
 	STRIPE_WEBHOOK_SECRET: z.string().optional(),
 	STRIPE_PRICE_SUBSCRIPTION_MONTHLY: z.string().optional(),

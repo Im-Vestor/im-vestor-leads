@@ -41,6 +41,23 @@ enum InvestmentRange {
   R_5M_PLUS   @map("5M+")
 }
 
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Currency {
+  USD
+  EUR
+  BRL
+}
+
+enum ProjectMediaType {
+  PHOTO
+  VIDEO
+}
+
 model User {
   id           String   @id @default(cuid())
   clerkId      String   @unique
@@ -70,6 +87,7 @@ model User {
   sentMessages  Message[]      @relation("SentMessages")
   conversations Conversation[] @relation("ConversationParticipants")
   notifications Notification[] @relation("UserNotifications")
+  projects      Project[]      @relation("EntrepreneurProjects")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -125,6 +143,60 @@ model ProcessedStripeEvent {
   createdAt DateTime @default(now())
 
   @@map("processed_stripe_events")
+}
+
+model Area {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  projects Project[]
+
+  @@map("areas")
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  name            String
+  quickSolution   String?
+  about           String?
+  website         String?
+  country         String?
+  status          ProjectStatus @default(DRAFT)
+  currency        Currency      @default(EUR)
+  investmentGoal  Int
+  startInvestment Int?
+  equity          Float?
+  annualRevenue   Int?
+  monthsToReturn  Int?
+  investorSlots   Int?
+  logo            String?
+  videoPitchUrl   String?
+
+  areas Area[]
+
+  entrepreneurId String
+  entrepreneur   User   @relation("EntrepreneurProjects", fields: [entrepreneurId], references: [id], onDelete: Cascade)
+
+  media ProjectMedia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entrepreneurId])
+  @@index([status, createdAt])
+  @@map("projects")
+}
+
+model ProjectMedia {
+  id        String           @id @default(cuid())
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      ProjectMediaType
+  url       String
+  caption   String?
+  order     Int              @default(0)
+
+  @@index([projectId])
+  @@map("project_media")
 }
 
 model BannedWord {

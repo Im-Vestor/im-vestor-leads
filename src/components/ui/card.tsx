@@ -12,7 +12,9 @@ function Card({
 			data-slot="card"
 			data-size={size}
 			className={cn(
-				"group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+				// gilt seam: gold hairline on the top edge, brightens with the ring on hover
+				"group/card relative flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 transition-[box-shadow] duration-300 hover:ring-gold/30 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+				"before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-px before:bg-linear-to-r before:from-transparent before:via-gold/70 before:to-transparent before:opacity-45 before:transition-opacity before:duration-300 hover:before:opacity-100",
 				className,
 			)}
 			{...props}

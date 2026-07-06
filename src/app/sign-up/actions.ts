@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { syncNameToClerk } from "@/lib/user";
 
 const roleValues = ["ENTREPRENEUR", "INVESTOR"] as const;
 const sectorValues = [
@@ -100,6 +101,8 @@ export async function completeSignup(
 	} catch {
 		return { ok: false, error: "Could not create your profile" };
 	}
+
+	await syncNameToClerk(userId, data.name?.trim() || null);
 
 	return { ok: true };
 }

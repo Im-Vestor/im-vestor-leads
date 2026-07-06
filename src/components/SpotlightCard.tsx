@@ -11,7 +11,7 @@ interface SpotlightCardProps extends React.PropsWithChildren {
 const SpotlightCard: React.FC<SpotlightCardProps> = ({
 	children,
 	className = "",
-	spotlightColor = "rgba(255, 255, 255, 0.25)",
+	spotlightColor = "rgba(237, 214, 137, 0.16)",
 }) => {
 	const divRef = useRef<HTMLDivElement>(null);
 
@@ -30,13 +30,14 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
 			onMouseMove={handleMouseMove}
 			className={`group/spot relative overflow-hidden ${className}`}
 		>
+			{children}
+			{/* after children so it also glows over opaque backgrounds (e.g. bg-card) */}
 			<div
 				className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-in-out group-hover/spot:opacity-60"
 				style={{
 					background: `radial-gradient(circle at var(--spot-x, 50%) var(--spot-y, 50%), ${spotlightColor}, transparent 80%)`,
 				}}
 			/>
-			{children}
 		</div>
 	);
 };
