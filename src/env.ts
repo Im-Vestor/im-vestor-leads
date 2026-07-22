@@ -19,6 +19,7 @@ const serverSchema = z.object({
 	STRIPE_PRICE_POKE_PACK_5_MONTHLY: z.string().optional(),
 	STRIPE_PRICE_POKE_PACK_10_MONTHLY: z.string().optional(),
 	STRIPE_PRICE_LEAD_CREDIT: z.string().optional(),
+	STRIPE_PRICE_HYPERTRAIN_TICKET: z.string().optional(),
 });
 
 const clientSchema = z.object({

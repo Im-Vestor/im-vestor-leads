@@ -74,8 +74,10 @@ model User {
   investmentCapacity InvestmentRange?
   sectors            Sector[]
 
-  pokes              Int       @default(1)
-  leadCredits        Int       @default(0)
+  pokes              Int       @default(2)
+  leadCredits        Int       @default(1)
+  hypertrainTickets  Int       @default(0)
+  hypertrainUntil    DateTime?
   subscriptionPlan   String?
   subscriptionStatus String?
   stripeCustomerId   String?   @unique
@@ -84,10 +86,11 @@ model User {
 
   lastSeenAt DateTime?
 
-  sentMessages  Message[]      @relation("SentMessages")
-  conversations Conversation[] @relation("ConversationParticipants")
-  notifications Notification[] @relation("UserNotifications")
-  projects      Project[]      @relation("EntrepreneurProjects")
+  sentMessages     Message[]       @relation("SentMessages")
+  conversations    Conversation[]  @relation("ConversationParticipants")
+  notifications    Notification[]  @relation("UserNotifications")
+  projects         Project[]       @relation("EntrepreneurProjects")
+  unlockedProjects ProjectUnlock[] @relation("UserUnlocks")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -170,13 +173,15 @@ model Project {
   investorSlots   Int?
   logo            String?
   videoPitchUrl   String?
+  hypertrainUntil DateTime?
 
   areas Area[]
 
   entrepreneurId String
   entrepreneur   User   @relation("EntrepreneurProjects", fields: [entrepreneurId], references: [id], onDelete: Cascade)
 
-  media ProjectMedia[]
+  media   ProjectMedia[]
+  unlocks ProjectUnlock[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -184,6 +189,20 @@ model Project {
   @@index([entrepreneurId])
   @@index([status, createdAt])
   @@map("projects")
+}
+
+// An investor permanently unlocking a project's full profile, spending one lead credit.
+model ProjectUnlock {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  user      User     @relation("UserUnlocks", fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+  @@map("project_unlocks")
 }
 
 model ProjectMedia {
