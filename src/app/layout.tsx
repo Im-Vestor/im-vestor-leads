@@ -1,15 +1,14 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import type { Metadata } from "next";
-import { DM_Sans, Fraunces, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { getLanguage } from "@/utils/translations/server";
 
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
-
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces" });
 
 const geistMono = Geist_Mono({
 	variable: "--font-geist-mono",
@@ -22,28 +21,34 @@ export const metadata: Metadata = {
 		"Marketplace connecting entrepreneurs and investors. Browse leads, send pokes, chat in real time.",
 };
 
-export default function RootLayout({
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
+};
+
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const language = await getLanguage();
 	return (
 		<html
-			lang="en"
+			lang={language.split("-")[0]}
 			className={cn(
 				"dark",
 				"h-full",
 				"antialiased",
 				geistMono.variable,
-				fraunces.variable,
 				"font-sans",
 				dmSans.variable,
 			)}
 		>
 			<body className="min-h-full flex flex-col">
 				<ClerkProvider>
-					<LanguageProvider>
-						<div className="px-4 pt-4 md:px-6 lg:px-8">
+					<LanguageProvider initialLanguage={language}>
+						<div className="px-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] md:px-6 lg:px-8">
 							<Header />
 						</div>
 						{children}

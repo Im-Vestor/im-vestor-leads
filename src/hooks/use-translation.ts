@@ -1,10 +1,14 @@
-import { useLanguage } from '@/contexts/LanguageContext';
-import { getTranslation } from '@/utils/translations';
+import { useCallback } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { getTranslation } from "@/utils/translations";
 
 export const useTranslation = () => {
-  const { language } = useLanguage();
+	const { language } = useLanguage();
 
-  return (key: Parameters<typeof getTranslation>[1]) => {
-    return getTranslation(language, key);
-  };
+	return useCallback(
+		(key: Parameters<typeof getTranslation>[1]) => {
+			return getTranslation(language, key);
+		},
+		[language],
+	);
 };

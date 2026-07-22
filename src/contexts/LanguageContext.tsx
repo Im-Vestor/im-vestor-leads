@@ -7,23 +7,21 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import {
+	DEFAULT_LANGUAGE,
+	LANGUAGE_COOKIE,
+	LANGUAGES,
+	type Language,
+} from "@/utils/translations/config";
 
-export type Language =
-	| "en-US"
-	| "pt-PT"
-	| "es-ES"
-	| "fr-FR"
-	| "it-IT"
-	| "de-DE";
-
-export const LANGUAGES: { code: Language; name: string; flag: string }[] = [
-	{ code: "en-US", name: "English", flag: "us" },
-	{ code: "pt-PT", name: "Português", flag: "pt" },
-	{ code: "es-ES", name: "Español", flag: "es" },
-	{ code: "fr-FR", name: "Français", flag: "fr" },
-	{ code: "it-IT", name: "Italiano", flag: "it" },
-	{ code: "de-DE", name: "Deutsch", flag: "de" },
-];
+// Re-export the neutral config so existing imports from this module keep working.
+export {
+	DEFAULT_LANGUAGE,
+	isLanguage,
+	LANGUAGE_COOKIE,
+	LANGUAGES,
+	type Language,
+} from "@/utils/translations/config";
 
 type LanguageContextType = {
 	language: Language;
@@ -31,7 +29,7 @@ type LanguageContextType = {
 };
 
 const LanguageContext = createContext<LanguageContextType>({
-	language: "en-US",
+	language: DEFAULT_LANGUAGE,
 	setLanguage: (_: Language) => {
 		// Overridden by the provider
 	},
@@ -41,20 +39,23 @@ export const useLanguage = () => useContext(LanguageContext);
 
 type LanguageProviderProps = {
 	children: ReactNode;
+	// Seeded server-side from the language cookie so the first paint is already
+	// in the right language (no flash, no hydration mismatch).
+	initialLanguage?: Language;
 };
 
-export const LanguageProvider = ({ children }: LanguageProviderProps) => {
-	const [language, setLanguage] = useState<Language>("en-US");
+export const LanguageProvider = ({
+	children,
+	initialLanguage = DEFAULT_LANGUAGE,
+}: LanguageProviderProps) => {
+	const [language, setLanguage] = useState<Language>(initialLanguage);
 
 	useEffect(() => {
-		const savedLanguage = localStorage.getItem("language") as Language;
-		if (savedLanguage && LANGUAGES.some((l) => l.code === savedLanguage)) {
-			setLanguage(savedLanguage);
-		}
-	}, []);
-
-	useEffect(() => {
-		localStorage.setItem("language", language);
+		// Persist as a cookie so Server Components and the <html lang> attribute
+		// can read the same value; mirror to localStorage for good measure.
+		document.cookie = `${LANGUAGE_COOKIE}=${language}; path=/; max-age=31536000; samesite=lax`;
+		localStorage.setItem(LANGUAGE_COOKIE, language);
+		document.documentElement.lang = language.split("-")[0];
 	}, [language]);
 
 	return (

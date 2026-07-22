@@ -1,4 +1,4 @@
-import type { Language } from "@/contexts/LanguageContext";
+import type { Language } from "./config";
 
 import deDE from "./de-DE.json";
 import enUS from "./en-US.json";
