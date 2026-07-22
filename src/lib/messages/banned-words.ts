@@ -5,6 +5,19 @@ function escapeRegex(word: string) {
 	return word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+export async function banPhrase(
+	phrase: string,
+	createdBy: string,
+): Promise<void> {
+	const word = phrase.trim().toLowerCase();
+	if (!word) return;
+	await prisma.bannedWord.upsert({
+		where: { word },
+		create: { word, createdBy },
+		update: {},
+	});
+}
+
 export async function findBannedWord(content: string): Promise<string | null> {
 	const bannedWords = await prisma.bannedWord.findMany({
 		select: { word: true },

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { findBannedWord } from "@/lib/messages/banned-words";
 import { prisma } from "@/lib/prisma";
 import { SUPPORT_EMAIL } from "@/lib/support";
+import { getT } from "@/utils/translations/server";
 
 const MESSAGE_MAX_LENGTH = 4000;
 const PAGE_SIZE = 50;
@@ -51,8 +52,9 @@ export type ConversationListItem = {
 export async function getConversations(): Promise<
 	ActionResult<ConversationListItem[]>
 > {
+	const t = await getT();
 	const me = await requireUser();
-	if (!me) return { ok: false, error: "Not authenticated" };
+	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
 	const rows = await prisma.conversation.findMany({
 		where: { participants: { some: { id: me.id } } },
@@ -126,14 +128,15 @@ export async function getMessages(
 ): Promise<
 	ActionResult<{ messages: MessageItem[]; nextCursor: string | null }>
 > {
+	const t = await getT();
 	const parsed = getMessagesSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const me = await requireUser();
-	if (!me) return { ok: false, error: "Not authenticated" };
+	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
 	if (!(await assertParticipant(parsed.data.conversationId, me.id))) {
-		return { ok: false, error: "Forbidden" };
+		return { ok: false, error: t("errForbidden") };
 	}
 
 	const rows = await prisma.message.findMany({
@@ -172,11 +175,12 @@ const sendMessageSchema = z.object({
 export async function sendMessage(
 	input: z.input<typeof sendMessageSchema>,
 ): Promise<ActionResult<MessageItem>> {
+	const t = await getT();
 	const parsed = sendMessageSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid message" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidMessage") };
 
 	const me = await requireUser();
-	if (!me) return { ok: false, error: "Not authenticated" };
+	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
 	const conversation = await prisma.conversation.findFirst({
 		where: {
@@ -185,11 +189,10 @@ export async function sendMessage(
 		},
 		include: { participants: { select: { id: true } } },
 	});
-	if (!conversation) return { ok: false, error: "Forbidden" };
+	if (!conversation) return { ok: false, error: t("errForbidden") };
 
 	const banned = await findBannedWord(parsed.data.content);
-	if (banned)
-		return { ok: false, error: "Your message contains banned content" };
+	if (banned) return { ok: false, error: t("errBannedContent") };
 
 	const preview =
 		parsed.data.content.length > 100
@@ -243,14 +246,15 @@ const markAsReadSchema = z.object({
 export async function markAsRead(
 	input: z.input<typeof markAsReadSchema>,
 ): Promise<ActionResult<{ count: number }>> {
+	const t = await getT();
 	const parsed = markAsReadSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const me = await requireUser();
-	if (!me) return { ok: false, error: "Not authenticated" };
+	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
 	if (!(await assertParticipant(parsed.data.conversationId, me.id))) {
-		return { ok: false, error: "Forbidden" };
+		return { ok: false, error: t("errForbidden") };
 	}
 
 	const result = await prisma.message.updateMany({
@@ -266,8 +270,9 @@ export async function markAsRead(
 }
 
 export async function getUnreadMessageCount(): Promise<ActionResult<number>> {
+	const t = await getT();
 	const me = await requireUser();
-	if (!me) return { ok: false, error: "Not authenticated" };
+	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
 	const count = await prisma.message.count({
 		where: {

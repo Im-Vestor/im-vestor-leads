@@ -27,10 +27,15 @@ export function MessageBubble({
 			{!isOwn ? (
 				<UserAvatar name={senderName} support={senderIsSupport} size="sm" />
 			) : null}
-			<div className={cn("flex max-w-[75%] flex-col", isOwn && "items-end")}>
+			<div
+				className={cn(
+					"flex min-w-0 max-w-[75%] flex-col",
+					isOwn && "items-end",
+				)}
+			>
 				<div
 					className={cn(
-						"whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm",
+						"whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-sm",
 						isOwn
 							? "rounded-br-sm bg-primary text-primary-foreground"
 							: "rounded-bl-sm bg-muted text-foreground",

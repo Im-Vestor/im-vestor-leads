@@ -162,7 +162,8 @@ export function ChatPanel({
 				{onBack ? (
 					<Button
 						variant="ghost"
-						size="icon"
+						size="icon-lg"
+						aria-label="Back"
 						className="md:hidden"
 						onClick={onBack}
 					>
@@ -219,7 +220,7 @@ export function ChatPanel({
 				)}
 			</div>
 
-			<div className="border-t border-border p-3">
+			<div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
 				<div className="flex items-end gap-2">
 					<Textarea
 						value={draft}
@@ -235,7 +236,7 @@ export function ChatPanel({
 						className="max-h-40 min-h-10 resize-none"
 					/>
 					<Button
-						size="icon"
+						size="icon-lg"
 						onClick={handleSend}
 						disabled={isPending || draft.trim().length === 0}
 					>

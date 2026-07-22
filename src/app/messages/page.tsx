@@ -15,7 +15,7 @@ export default async function MessagesPage({
 
 	const sp = await searchParams;
 	return (
-		<div className="mx-auto h-[calc(100vh-180px)] w-full max-w-6xl px-4">
+		<div className="mx-auto h-[calc(100dvh-9.5rem)] w-full max-w-content px-4 md:h-[calc(100vh-180px)]">
 			<MessagesView
 				myUserId={user.id}
 				initialConversationId={sp.c ?? null}

@@ -3,14 +3,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/utils/translations/server";
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 export async function heartbeat(): Promise<ActionResult<{ ok: true }>> {
+	const t = await getT();
 	const { userId: clerkId } = await auth();
-	if (!clerkId) return { ok: false, error: "Not authenticated" };
+	if (!clerkId) return { ok: false, error: t("errNotAuthenticated") };
 
 	await prisma.user.update({
 		where: { clerkId },
@@ -26,11 +28,12 @@ const getStatusesSchema = z.object({
 export async function getOnlineStatuses(
 	input: z.input<typeof getStatusesSchema>,
 ): Promise<ActionResult<Record<string, boolean>>> {
+	const t = await getT();
 	const parsed = getStatusesSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const { userId: clerkId } = await auth();
-	if (!clerkId) return { ok: false, error: "Not authenticated" };
+	if (!clerkId) return { ok: false, error: t("errNotAuthenticated") };
 
 	if (parsed.data.userIds.length === 0) return { ok: true, data: {} };
 

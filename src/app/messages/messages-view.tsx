@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { useOnlineStatuses } from "@/hooks/use-online-statuses";
 import { usePresenceHeartbeat } from "@/hooks/use-presence-heartbeat";
 import { useRealtimeConversations } from "@/hooks/use-realtime-conversations";
+import { useTranslation } from "@/hooks/use-translation";
 import { emitMessagesRead } from "@/lib/unread-events";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,7 @@ export function MessagesView({
 		initialConversationId,
 	);
 	const [contacting, startContact] = useTransition();
+	const t = useTranslation();
 
 	usePresenceHeartbeat();
 
@@ -93,7 +95,7 @@ export function MessagesView({
 	}, [refreshConversations]);
 
 	return (
-		<div className="grid h-full grid-cols-1 gap-4 rounded-2xl border border-border bg-card p-3 md:grid-cols-[320px_1fr]">
+		<div className="grid h-full grid-cols-1 gap-4 rounded-2xl border border-border bg-card p-2 md:grid-cols-[320px_1fr] md:p-3">
 			<aside
 				className={cn(
 					"min-h-0 gap-3 border-border md:border-r md:pr-3",
@@ -108,7 +110,7 @@ export function MessagesView({
 						disabled={contacting}
 					>
 						<LifeBuoyIcon className="size-4 text-brand-gold" />
-						{contacting ? "Opening…" : "Contact Support"}
+						{contacting ? t("msgOpening") : t("msgContactSupport")}
 					</Button>
 				) : null}
 				<div className="min-h-0 flex-1">
@@ -142,7 +144,7 @@ export function MessagesView({
 					/>
 				) : (
 					<div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-						Select a conversation to start messaging.
+						{t("msgSelectConversation")}
 					</div>
 				)}
 			</section>

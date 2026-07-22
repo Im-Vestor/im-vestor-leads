@@ -7,6 +7,7 @@ import type { ConversationListItem } from "@/app/messages/actions";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/use-translation";
 import { getDisplayName } from "@/lib/messages/display-name";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "./user-avatar";
@@ -24,6 +25,7 @@ export function ConversationList({
 	onSelect,
 	onlineStatuses,
 }: Props) {
+	const t = useTranslation();
 	const [search, setSearch] = useState("");
 
 	const filtered = useMemo(() => {
@@ -43,7 +45,7 @@ export function ConversationList({
 				<Input
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
-					placeholder="Search conversations…"
+					placeholder={t("msgSearchConversations")}
 					className="pl-9"
 				/>
 			</div>
@@ -57,7 +59,7 @@ export function ConversationList({
 					</div>
 				) : filtered.length === 0 ? (
 					<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-						No conversations yet. Start one from a profile page.
+						{t("msgNoConversations")}
 					</div>
 				) : (
 					<ul className="flex flex-col gap-1">
@@ -94,7 +96,7 @@ export function ConversationList({
 												<span className="flex min-w-0 items-center gap-1">
 													<span
 														className={cn(
-															"truncate text-sm",
+															"min-w-0 truncate text-sm",
 															hasUnread
 																? "font-semibold text-foreground"
 																: "text-foreground",
@@ -117,16 +119,16 @@ export function ConversationList({
 													</span>
 												) : null}
 											</div>
-											<div className="flex items-center justify-between gap-2">
+											<div className="flex min-w-0 items-center justify-between gap-2">
 												<span
 													className={cn(
-														"truncate text-xs",
+														"min-w-0 truncate text-xs",
 														hasUnread
 															? "font-medium text-foreground"
 															: "text-muted-foreground",
 													)}
 												>
-													{c.lastMessage?.content ?? "No messages yet"}
+													{c.lastMessage?.content ?? t("msgNoMessages")}
 												</span>
 												{hasUnread ? (
 													<Badge className="ml-1 h-5 min-w-5 justify-center rounded-full px-1.5 text-[10px]">

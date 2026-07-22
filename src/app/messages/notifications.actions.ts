@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { UserRole } from "@/generated/prisma/enums";
 import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/utils/translations/server";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -20,8 +21,9 @@ async function requireUserId() {
 export async function getNotificationsUnreadCount(): Promise<
 	ActionResult<number>
 > {
+	const t = await getT();
 	const userId = await requireUserId();
-	if (!userId) return { ok: false, error: "Not authenticated" };
+	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
 
 	const count = await prisma.notification.count({
 		where: { userId, read: false },
@@ -32,8 +34,9 @@ export async function getNotificationsUnreadCount(): Promise<
 export async function markNotificationsAsRead(): Promise<
 	ActionResult<{ count: number }>
 > {
+	const t = await getT();
 	const userId = await requireUserId();
-	if (!userId) return { ok: false, error: "Not authenticated" };
+	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
 
 	const result = await prisma.notification.updateMany({
 		where: { userId, read: false },
@@ -43,19 +46,21 @@ export async function markNotificationsAsRead(): Promise<
 }
 
 export async function getMyUserId(): Promise<ActionResult<string>> {
+	const t = await getT();
 	const userId = await requireUserId();
-	if (!userId) return { ok: false, error: "Not authenticated" };
+	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
 	return { ok: true, data: userId };
 }
 
 export async function getMyRole(): Promise<ActionResult<UserRole>> {
+	const t = await getT();
 	const { userId: clerkId } = await auth();
-	if (!clerkId) return { ok: false, error: "Not authenticated" };
+	if (!clerkId) return { ok: false, error: t("errNotAuthenticated") };
 	const me = await prisma.user.findUnique({
 		where: { clerkId },
 		select: { id: true, role: true, email: true },
 	});
-	if (!me) return { ok: false, error: "User not found" };
+	if (!me) return { ok: false, error: t("errUserNotFound") };
 
 	// Promote to admin if their email was added to ADMIN_EMAILS after signup, so
 	// the Admin link surfaces on the next page load without visiting /messages.
