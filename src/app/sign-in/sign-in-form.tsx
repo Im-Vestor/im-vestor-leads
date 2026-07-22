@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/hooks/use-translation";
 
 type SignInFormProps = {
 	onSuccess?: () => void;
@@ -18,6 +19,7 @@ export function SignInForm({
 	onSuccess,
 	onSwitchToSignUp,
 }: SignInFormProps = {}) {
+	const t = useTranslation();
 	const { signIn } = useSignIn();
 	const router = useRouter();
 	const [email, setEmail] = useState("");
@@ -30,16 +32,16 @@ export function SignInForm({
 		try {
 			const attempt = await signIn.password({ identifier: email, password });
 			if (attempt.error) {
-				toast.error(clerkError(attempt.error) ?? "Could not sign in");
+				toast.error(clerkError(attempt.error) ?? t("authCouldNotSignIn"));
 				return;
 			}
 			if (signIn.status !== "complete") {
-				toast.error("Additional verification is required to sign in.");
+				toast.error(t("authAdditionalVerification"));
 				return;
 			}
 			const finalized = await signIn.finalize();
 			if (finalized.error) {
-				toast.error(clerkError(finalized.error) ?? "Could not sign in");
+				toast.error(clerkError(finalized.error) ?? t("authCouldNotSignIn"));
 				return;
 			}
 			if (onSuccess) {
@@ -55,7 +57,7 @@ export function SignInForm({
 	return (
 		<form onSubmit={onSubmit} className="flex flex-col gap-5">
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="email">Email</Label>
+				<Label htmlFor="email">{t("authEmail")}</Label>
 				<Input
 					id="email"
 					type="email"
@@ -66,7 +68,7 @@ export function SignInForm({
 				/>
 			</div>
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="password">Password</Label>
+				<Label htmlFor="password">{t("authPassword")}</Label>
 				<Input
 					id="password"
 					type="password"
@@ -76,25 +78,25 @@ export function SignInForm({
 					required
 				/>
 			</div>
-			<Button type="submit" disabled={submitting}>
-				{submitting ? "Signing in…" : "Sign in"}
+			<Button type="submit" size="lg" className="w-full" disabled={submitting}>
+				{submitting ? t("authSigningIn") : t("authSignIn")}
 			</Button>
 			<p className="text-center text-sm text-muted-foreground">
-				No account?{" "}
+				{t("authNoAccount")}{" "}
 				{onSwitchToSignUp ? (
 					<button
 						type="button"
 						onClick={onSwitchToSignUp}
 						className="font-medium text-foreground underline"
 					>
-						Sign up
+						{t("authSignUp")}
 					</button>
 				) : (
 					<Link
 						href="/sign-up"
 						className="font-medium text-foreground underline"
 					>
-						Sign up
+						{t("authSignUp")}
 					</Link>
 				)}
 			</p>

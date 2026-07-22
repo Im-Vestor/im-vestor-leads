@@ -1,11 +1,13 @@
 import { AuthShell } from "@/components/auth-shell";
+import { getT } from "@/utils/translations/server";
 import { SignInForm } from "./sign-in-form";
 
-export default function SignInPage() {
+export default async function SignInPage() {
+	const t = await getT();
 	return (
 		<AuthShell
-			title="Welcome back"
-			description="Sign in to continue to Im-Vestor Leads."
+			title={t("authWelcomeBack")}
+			description={t("authSignInDescription")}
 		>
 			<SignInForm />
 		</AuthShell>

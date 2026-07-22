@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { syncNameToClerk } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
 
 const roleValues = ["ENTREPRENEUR", "INVESTOR"] as const;
 const sectorValues = [
@@ -57,11 +58,12 @@ function generateReferralCode(seed: string): string {
 export async function completeSignup(
 	input: CompleteSignupInput,
 ): Promise<CompleteSignupResult> {
+	const t = await getT();
 	const { userId } = await auth();
-	if (!userId) return { ok: false, error: "Not authenticated" };
+	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
 
 	const parsed = signupSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid sign-up data" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidSignupData") };
 	const data = parsed.data;
 
 	let referredByCode: string | null = null;
@@ -99,7 +101,7 @@ export async function completeSignup(
 			},
 		});
 	} catch {
-		return { ok: false, error: "Could not create your profile" };
+		return { ok: false, error: t("errCouldNotCreateProfile") };
 	}
 
 	await syncNameToClerk(userId, data.name?.trim() || null);

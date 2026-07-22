@@ -15,12 +15,14 @@ import {
 } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import { useTranslation } from "@/hooks/use-translation";
 import {
 	COUNTRIES,
+	COUNTRY_LABEL_KEYS,
 	INVESTMENT_RANGE_LABELS,
 	INVESTMENT_RANGES,
-	ROLE_LABELS,
-	SECTOR_LABELS,
+	ROLE_LABEL_KEYS,
+	SECTOR_LABEL_KEYS,
 	SECTORS,
 	SIGNUP_ROLES,
 } from "@/lib/constants";
@@ -35,6 +37,7 @@ export function SignUpForm({
 	onSuccess,
 	onSwitchToSignIn,
 }: SignUpFormProps = {}) {
+	const t = useTranslation();
 	const { signUp } = useSignUp();
 	const clerk = useClerk();
 	const router = useRouter();
@@ -64,16 +67,18 @@ export function SignUpForm({
 		try {
 			const created = await signUp.password({ emailAddress: email, password });
 			if (created.error) {
-				toast.error(clerkError(created.error) ?? "Could not sign up");
+				toast.error(clerkError(created.error) ?? t("authCouldNotSignUp"));
 				return;
 			}
 			if (signUp.status !== "complete") {
-				toast.error("Could not complete sign-up. Try again.");
+				toast.error(t("authCouldNotCompleteSignUp"));
 				return;
 			}
 			const finalized = await signUp.finalize();
 			if (finalized.error) {
-				toast.error(clerkError(finalized.error) ?? "Could not finish sign-up");
+				toast.error(
+					clerkError(finalized.error) ?? t("authCouldNotFinishSignUp"),
+				);
 				return;
 			}
 			await signUp.reset();
@@ -92,7 +97,7 @@ export function SignUpForm({
 				return;
 			}
 			await clerk.user?.reload();
-			toast.success("Welcome to IM-VESTOR!");
+			toast.success(t("authWelcomeToImVestor"));
 			if (onSuccess) {
 				onSuccess();
 			} else {
@@ -106,7 +111,7 @@ export function SignUpForm({
 	return (
 		<form onSubmit={onSubmit} className="flex flex-col gap-5">
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="email">Email</Label>
+				<Label htmlFor="email">{t("authEmail")}</Label>
 				<Input
 					id="email"
 					type="email"
@@ -118,7 +123,7 @@ export function SignUpForm({
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="password">Password</Label>
+				<Label htmlFor="password">{t("authPassword")}</Label>
 				<Input
 					id="password"
 					type="password"
@@ -130,34 +135,36 @@ export function SignUpForm({
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="name">Name</Label>
+				<Label htmlFor="name">{t("authName")}</Label>
 				<Input
 					id="name"
 					value={name}
 					onChange={(e) => setName(e.target.value)}
-					placeholder="Your full name"
+					placeholder={t("authYourFullName")}
 				/>
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="country">Country</Label>
+				<Label htmlFor="country">{t("authCountry")}</Label>
 				<NativeSelect
 					id="country"
 					className="w-full"
 					value={country}
 					onChange={(e) => setCountry(e.target.value)}
 				>
-					<NativeSelectOption value="">Select a country…</NativeSelectOption>
+					<NativeSelectOption value="">
+						{t("authSelectCountry")}
+					</NativeSelectOption>
 					{COUNTRIES.map((c) => (
 						<NativeSelectOption key={c} value={c}>
-							{c}
+							{t(COUNTRY_LABEL_KEYS[c])}
 						</NativeSelectOption>
 					))}
 				</NativeSelect>
 			</div>
 
 			<div className="flex flex-col gap-2">
-				<Label>I am a…</Label>
+				<Label>{t("authIAmA")}</Label>
 				<Tabs
 					value={role}
 					onValueChange={(value) =>
@@ -167,7 +174,7 @@ export function SignUpForm({
 					<TabsList className="h-10 w-full">
 						{SIGNUP_ROLES.map((r) => (
 							<TabsTrigger key={r} value={r} className="text-sm">
-								{ROLE_LABELS[r]}
+								{t(ROLE_LABEL_KEYS[r])}
 							</TabsTrigger>
 						))}
 					</TabsList>
@@ -177,7 +184,7 @@ export function SignUpForm({
 			{isInvestor && (
 				<>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="capacity">Investment capacity</Label>
+						<Label htmlFor="capacity">{t("authInvestmentCapacity")}</Label>
 						<NativeSelect
 							id="capacity"
 							className="w-full"
@@ -186,7 +193,9 @@ export function SignUpForm({
 								setCapacity(e.target.value as InvestmentRange | "")
 							}
 						>
-							<NativeSelectOption value="">Select a range…</NativeSelectOption>
+							<NativeSelectOption value="">
+								{t("authSelectRange")}
+							</NativeSelectOption>
 							{INVESTMENT_RANGES.map((r) => (
 								<NativeSelectOption key={r} value={r}>
 									{INVESTMENT_RANGE_LABELS[r]}
@@ -197,7 +206,7 @@ export function SignUpForm({
 
 					<fieldset className="flex flex-col gap-3">
 						<legend className="mb-1 text-sm font-medium">
-							Sectors of interest
+							{t("authSectorsOfInterest")}
 						</legend>
 						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 							{SECTORS.map((s) => (
@@ -213,7 +222,7 @@ export function SignUpForm({
 											toggleSector(s, checked === true)
 										}
 									/>
-									{SECTOR_LABELS[s]}
+									{t(SECTOR_LABEL_KEYS[s])}
 								</label>
 							))}
 						</div>
@@ -222,37 +231,39 @@ export function SignUpForm({
 			)}
 
 			<div className="flex flex-col gap-2">
-				<Label htmlFor="ref">Referral code (optional)</Label>
+				<Label htmlFor="ref">
+					{t("authReferralCode")} ({t("commonOptional")})
+				</Label>
 				<Input
 					id="ref"
 					value={referredByCode}
 					onChange={(e) => setReferredByCode(e.target.value)}
-					placeholder="e.g. JOAO-4F2K"
+					placeholder={t("authReferralExample")}
 				/>
 			</div>
 
 			<div id="clerk-captcha" />
 
-			<Button type="submit" disabled={submitting}>
-				{submitting ? "Creating…" : "Continue"}
+			<Button type="submit" size="lg" className="w-full" disabled={submitting}>
+				{submitting ? t("authCreating") : t("authContinue")}
 			</Button>
 
 			<p className="text-center text-sm text-muted-foreground">
-				Already have an account?{" "}
+				{t("authAlreadyHaveAccount")}{" "}
 				{onSwitchToSignIn ? (
 					<button
 						type="button"
 						onClick={onSwitchToSignIn}
 						className="font-medium text-foreground underline"
 					>
-						Sign in
+						{t("authSignIn")}
 					</button>
 				) : (
 					<Link
 						href="/sign-in"
 						className="font-medium text-foreground underline"
 					>
-						Sign in
+						{t("authSignIn")}
 					</Link>
 				)}
 			</p>
