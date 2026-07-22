@@ -8,6 +8,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import { getOrCreateUser, syncNameToClerk } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
 
 const sectorValues = [
 	"TECHNOLOGY",
@@ -44,12 +45,13 @@ export type ProfileActionResult = { ok: true } | { ok: false; error: string };
 export async function updateProfile(
 	input: ProfileInput,
 ): Promise<ProfileActionResult> {
+	const t = await getT();
 	const { userId } = await auth();
-	if (!userId) return { ok: false, error: "Not authenticated" };
+	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
 
 	const parsed = profileSchema.safeParse(input);
 	if (!parsed.success) {
-		return { ok: false, error: "Invalid profile data" };
+		return { ok: false, error: t("errInvalidProfileData") };
 	}
 	const data = parsed.data;
 
@@ -57,24 +59,30 @@ export async function updateProfile(
 		where: { clerkId: userId },
 		select: { role: true },
 	});
-	if (!existing) return { ok: false, error: "User not found" };
+	if (!existing) return { ok: false, error: t("errUserNotFound") };
 	const isInvestor = existing.role === "INVESTOR";
+
+	const name = data.name?.trim() || null;
+
+	if (!(await syncNameToClerk(userId, name))) {
+		return { ok: false, error: t("errCouldNotUpdateProfile") };
+	}
 
 	try {
 		await prisma.user.update({
 			where: { clerkId: userId },
 			data: {
-				name: data.name?.trim() || null,
+				name,
 				country: data.country?.trim() || null,
-				investmentCapacity: isInvestor ? (data.investmentCapacity ?? null) : null,
+				investmentCapacity: isInvestor
+					? (data.investmentCapacity ?? null)
+					: null,
 				sectors: isInvestor ? data.sectors : [],
 			},
 		});
 	} catch {
-		return { ok: false, error: "Could not save your profile" };
+		return { ok: false, error: t("errCouldNotSaveProfile") };
 	}
-
-	await syncNameToClerk(userId, data.name?.trim() || null);
 
 	revalidatePath("/profile");
 	return { ok: true };
