@@ -30,7 +30,7 @@ export const projectMediaSchema = z.object({
 
 export const projectSchema = z.object({
 	name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
-	quickSolution: optionalText(200),
+	quickSolution: optionalText(250),
 	about: optionalText(2000),
 	website: optionalText(200),
 	country: optionalText(80),
@@ -47,7 +47,7 @@ export const projectSchema = z.object({
 	investorSlots: optionalPositiveInt,
 	logo: optionalText(500),
 	videoPitchUrl: optionalText(500),
-	media: z.array(projectMediaSchema).max(4).default([]),
+	media: z.array(projectMediaSchema).max(3).default([]),
 });
 
 export type ProjectInput = z.input<typeof projectSchema>;

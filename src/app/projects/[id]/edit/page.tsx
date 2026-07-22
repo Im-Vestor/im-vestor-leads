@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/utils/translations/server";
 import { requireEntrepreneur } from "../../_entrepreneur-guard";
+import { HypertrainButton } from "../../hypertrain-button";
 import { ProjectForm } from "../../project-form";
 
 export default async function EditProjectPage({
@@ -8,6 +10,7 @@ export default async function EditProjectPage({
 }: {
 	params: Promise<{ id: string }>;
 }) {
+	const t = await getT();
 	const user = await requireEntrepreneur();
 	if (!user) redirect("/dashboard");
 
@@ -32,12 +35,19 @@ export default async function EditProjectPage({
 	});
 
 	return (
-		<section className="mx-auto w-full max-w-6xl px-6 pb-16">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl tracking-tight">Edit project</h1>
-				<p className="text-muted-foreground text-sm">{project.name}</p>
-			</div>
+		<section className="mx-auto w-full max-w-content px-4 pb-16 md:px-6">
 			<ProjectForm
+				title={t("projEditProject")}
+				subtitle={project.name}
+				headerAction={
+					<HypertrainButton
+						projectId={project.id}
+						activeUntil={project.hypertrainUntil?.toISOString() ?? null}
+						tickets={user.hypertrainTickets}
+						published={project.status === "PUBLISHED"}
+						size="sm"
+					/>
+				}
 				areas={areas}
 				projectId={project.id}
 				initial={{

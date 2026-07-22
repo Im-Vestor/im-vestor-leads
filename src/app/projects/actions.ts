@@ -3,8 +3,10 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { banPhrase } from "@/lib/messages/banned-words";
 import { prisma } from "@/lib/prisma";
 import { getSupabaseAdmin, PROJECT_MEDIA_BUCKET } from "@/lib/supabase/server";
+import { getT } from "@/utils/translations/server";
 import { requireEntrepreneur } from "./_entrepreneur-guard";
 import { type ProjectInput, projectSchema } from "./schema";
 
@@ -32,13 +34,14 @@ export async function createUploadUrl(
 	kind: "image" | "video",
 	contentType: string,
 ): Promise<UploadUrlResult> {
+	const t = await getT();
 	const user = await requireEntrepreneur();
-	if (!user) return { ok: false, error: "Not authorized" };
+	if (!user) return { ok: false, error: t("errNotAuthorized") };
 
 	const allowed = kind === "image" ? IMAGE_MIMES : VIDEO_MIMES;
 	const ext = EXT_BY_MIME[contentType];
 	if (!allowed.includes(contentType) || !ext) {
-		return { ok: false, error: "Unsupported file type" };
+		return { ok: false, error: t("errUnsupportedFileType") };
 	}
 
 	try {
@@ -46,14 +49,14 @@ export async function createUploadUrl(
 		const path = `${user.id}/${randomUUID()}.${ext}`;
 		const { data, error } = await storage.createSignedUploadUrl(path);
 		if (error || !data) {
-			return { ok: false, error: error?.message ?? "Could not sign upload" };
+			return { ok: false, error: error?.message ?? t("errCouldNotSignUpload") };
 		}
 		const { data: pub } = storage.getPublicUrl(path);
 		return { ok: true, path, token: data.token, publicUrl: pub.publicUrl };
 	} catch (err) {
 		return {
 			ok: false,
-			error: err instanceof Error ? err.message : "Could not sign upload",
+			error: err instanceof Error ? err.message : t("errCouldNotSignUpload"),
 		};
 	}
 }
@@ -104,14 +107,15 @@ function revalidateProjectPaths(id?: string) {
 export async function createProject(
 	input: ProjectInput,
 ): Promise<ProjectActionResult> {
+	const t = await getT();
 	const user = await requireEntrepreneur();
-	if (!user) return { ok: false, error: "Not authorized" };
+	if (!user) return { ok: false, error: t("errNotAuthorized") };
 
 	const parsed = projectSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
 			ok: false,
-			error: parsed.error.issues[0]?.message ?? "Invalid project data",
+			error: t("errInvalidProjectData"),
 		};
 	}
 
@@ -128,7 +132,7 @@ export async function createProject(
 		revalidateProjectPaths(project.id);
 		return { ok: true, id: project.id };
 	} catch {
-		return { ok: false, error: "Could not create the project" };
+		return { ok: false, error: t("errCouldNotCreateProject") };
 	}
 }
 
@@ -137,7 +141,7 @@ async function findOwnedProject(id: string) {
 	if (!user) return null;
 	const project = await prisma.project.findUnique({
 		where: { id },
-		select: { id: true, entrepreneurId: true },
+		select: { id: true, entrepreneurId: true, status: true },
 	});
 	if (!project) return null;
 	if (project.entrepreneurId !== user.id && user.role !== "ADMIN") return null;
@@ -148,16 +152,26 @@ export async function updateProject(
 	id: string,
 	input: ProjectInput,
 ): Promise<ProjectActionResult> {
+	const t = await getT();
 	const project = await findOwnedProject(id);
-	if (!project) return { ok: false, error: "Project not found" };
+	if (!project) return { ok: false, error: t("errProjectNotFound") };
 
 	const parsed = projectSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
 			ok: false,
-			error: parsed.error.issues[0]?.message ?? "Invalid project data",
+			error: t("errInvalidProjectData"),
 		};
 	}
+
+	const before = await prisma.project.findUnique({
+		where: { id },
+		select: {
+			logo: true,
+			videoPitchUrl: true,
+			media: { select: { url: true } },
+		},
+	});
 
 	try {
 		await prisma.project.update({
@@ -168,10 +182,40 @@ export async function updateProject(
 				media: { deleteMany: {}, create: mediaCreate(parsed.data) },
 			},
 		});
+		if (project.status === "PUBLISHED") {
+			await banPhrase(parsed.data.name, project.entrepreneurId);
+		}
+
+		// Best-effort storage cleanup of files no longer referenced.
+		const kept = new Set(
+			[
+				parsed.data.logo,
+				parsed.data.videoPitchUrl,
+				...parsed.data.media.map((m) => m.url),
+			].filter(Boolean),
+		);
+		const removed = [
+			before?.logo,
+			before?.videoPitchUrl,
+			...(before?.media.map((m) => m.url) ?? []),
+		]
+			.filter((u): u is string => Boolean(u) && !kept.has(u as string))
+			.map(storagePathFromUrl)
+			.filter((p): p is string => Boolean(p));
+		if (removed.length > 0) {
+			try {
+				await getSupabaseAdmin()
+					.storage.from(PROJECT_MEDIA_BUCKET)
+					.remove(removed);
+			} catch {
+				// ignore — orphaned files are harmless
+			}
+		}
+
 		revalidateProjectPaths(id);
 		return { ok: true, id };
 	} catch {
-		return { ok: false, error: "Could not save the project" };
+		return { ok: false, error: t("errCouldNotSaveProject") };
 	}
 }
 
@@ -181,21 +225,26 @@ export async function setProjectStatus(
 	id: string,
 	status: z.input<typeof statusSchema>,
 ): Promise<ProjectActionResult> {
+	const t = await getT();
 	const project = await findOwnedProject(id);
-	if (!project) return { ok: false, error: "Project not found" };
+	if (!project) return { ok: false, error: t("errProjectNotFound") };
 
 	const parsed = statusSchema.safeParse(status);
-	if (!parsed.success) return { ok: false, error: "Invalid status" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidStatus") };
 
 	try {
-		await prisma.project.update({
+		const updated = await prisma.project.update({
 			where: { id },
 			data: { status: parsed.data },
+			select: { name: true },
 		});
+		if (parsed.data === "PUBLISHED") {
+			await banPhrase(updated.name, project.entrepreneurId);
+		}
 		revalidateProjectPaths(id);
 		return { ok: true, id };
 	} catch {
-		return { ok: false, error: "Could not update the project status" };
+		return { ok: false, error: t("errCouldNotUpdateStatus") };
 	}
 }
 
@@ -207,8 +256,9 @@ function storagePathFromUrl(url: string): string | null {
 }
 
 export async function deleteProject(id: string): Promise<ProjectActionResult> {
+	const t = await getT();
 	const project = await findOwnedProject(id);
-	if (!project) return { ok: false, error: "Project not found" };
+	if (!project) return { ok: false, error: t("errProjectNotFound") };
 
 	const full = await prisma.project.findUnique({
 		where: { id },
@@ -222,7 +272,7 @@ export async function deleteProject(id: string): Promise<ProjectActionResult> {
 	try {
 		await prisma.project.delete({ where: { id } });
 	} catch {
-		return { ok: false, error: "Could not delete the project" };
+		return { ok: false, error: t("errCouldNotDeleteProject") };
 	}
 
 	// Best-effort storage cleanup; DB row is already gone.

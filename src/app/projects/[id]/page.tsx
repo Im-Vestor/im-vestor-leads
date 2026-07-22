@@ -5,16 +5,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
-import { requireEntrepreneur } from "../_entrepreneur-guard";
-import { CURRENCY_SYMBOLS, STATUS_LABELS } from "../schema";
+import { getOrCreateUser } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
+import { HypertrainButton } from "../hypertrain-button";
+import { CURRENCY_SYMBOLS } from "../schema";
 
 export default async function ProjectDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
 }) {
-	const user = await requireEntrepreneur();
-	if (!user) redirect("/dashboard");
+	const t = await getT();
+	const user = await getOrCreateUser();
+	if (!user) redirect("/sign-in");
+
+	const statusLabels = {
+		DRAFT: t("projStatusDraft"),
+		PUBLISHED: t("projStatusPublished"),
+		ARCHIVED: t("projStatusArchived"),
+	};
 
 	const { id } = await params;
 	const project = await prisma.project.findUnique({
@@ -24,11 +33,16 @@ export default async function ProjectDetailPage({
 			media: { orderBy: { order: "asc" } },
 		},
 	});
-	if (
-		!project ||
-		(project.entrepreneurId !== user.id && user.role !== "ADMIN")
-	) {
-		notFound();
+	if (!project) notFound();
+
+	const canEdit = project.entrepreneurId === user.id || user.role === "ADMIN";
+	if (!canEdit) {
+		// Non-owners may view only a project they have permanently unlocked.
+		const unlock = await prisma.projectUnlock.findUnique({
+			where: { userId_projectId: { userId: user.id, projectId: id } },
+			select: { id: true },
+		});
+		if (!unlock) notFound();
 	}
 
 	const symbol = CURRENCY_SYMBOLS[project.currency];
@@ -37,41 +51,44 @@ export default async function ProjectDetailPage({
 	const photos = project.media.filter((m) => m.type === "PHOTO");
 
 	const facts: [string, string][] = [
-		["Investment goal", money(project.investmentGoal)],
-		["Minimum ticket", money(project.startInvestment)],
-		["Equity offered", project.equity === null ? "—" : `${project.equity}%`],
-		["Annual revenue", money(project.annualRevenue)],
+		[t("projInvestmentGoal"), money(project.investmentGoal)],
+		[t("projMinimumTicket"), money(project.startInvestment)],
 		[
-			"Months to return",
+			t("projEquityOffered"),
+			project.equity === null ? "—" : `${project.equity}%`,
+		],
+		[t("projAnnualRevenue"), money(project.annualRevenue)],
+		[
+			t("projMonthsToReturn"),
 			project.monthsToReturn === null ? "—" : String(project.monthsToReturn),
 		],
 		[
-			"Investor slots",
+			t("projInvestorSlots"),
 			project.investorSlots === null ? "—" : String(project.investorSlots),
 		],
 	];
 
 	return (
-		<section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-16">
+		<section className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-16 md:px-6">
 			<div className="flex flex-wrap items-start justify-between gap-4">
-				<div className="flex items-center gap-4">
+				<div className="flex min-w-0 items-center gap-4">
 					{project.logo && (
 						// biome-ignore lint/performance/noImgElement: supabase storage image
 						<img
 							src={project.logo}
-							alt={`${project.name} logo`}
+							alt={`${project.name} ${t("projLogoWord")}`}
 							className="size-16 rounded-md border object-cover"
 						/>
 					)}
-					<div>
-						<h1 className="flex items-center gap-2 font-semibold text-2xl tracking-tight">
+					<div className="min-w-0">
+						<h1 className="flex flex-wrap items-center gap-2 font-semibold text-2xl tracking-tight">
 							{project.name}
 							<Badge
 								variant={
 									project.status === "PUBLISHED" ? "default" : "secondary"
 								}
 							>
-								{STATUS_LABELS[project.status]}
+								{statusLabels[project.status]}
 							</Badge>
 						</h1>
 						<div className="mt-1 flex flex-wrap gap-1.5">
@@ -86,12 +103,22 @@ export default async function ProjectDetailPage({
 						</div>
 					</div>
 				</div>
-				<Button
-					variant="outline"
-					render={<Link href={`/projects/${project.id}/edit`} />}
-				>
-					<PencilIcon /> Edit
-				</Button>
+				{canEdit && (
+					<div className="flex flex-wrap gap-2">
+						<HypertrainButton
+							projectId={project.id}
+							activeUntil={project.hypertrainUntil?.toISOString() ?? null}
+							tickets={user.hypertrainTickets}
+							published={project.status === "PUBLISHED"}
+						/>
+						<Button
+							variant="outline"
+							render={<Link href={`/projects/${project.id}/edit`} />}
+						>
+							<PencilIcon /> {t("commonEdit")}
+						</Button>
+					</div>
+				)}
 			</div>
 
 			{project.quickSolution && (
@@ -100,7 +127,7 @@ export default async function ProjectDetailPage({
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Investment</CardTitle>
+					<CardTitle>{t("projInvestment")}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -117,7 +144,7 @@ export default async function ProjectDetailPage({
 			{project.about && (
 				<Card>
 					<CardHeader>
-						<CardTitle>About</CardTitle>
+						<CardTitle>{t("projAbout")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -130,14 +157,14 @@ export default async function ProjectDetailPage({
 			{project.videoPitchUrl && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Pitch video</CardTitle>
+						<CardTitle>{t("projPitchVideo")}</CardTitle>
 					</CardHeader>
 					<CardContent>
 						{/* biome-ignore lint/a11y/useMediaCaption: user-uploaded pitch video */}
 						<video
 							src={project.videoPitchUrl}
 							controls
-							className="max-h-96 w-full rounded-md border bg-black"
+							className="mx-auto aspect-video w-full max-w-2xl rounded-md border bg-black object-cover"
 						/>
 					</CardContent>
 				</Card>
@@ -146,19 +173,22 @@ export default async function ProjectDetailPage({
 			{photos.length > 0 && (
 				<Card>
 					<CardHeader>
-						<CardTitle>Photos</CardTitle>
+						<CardTitle>{t("projPhotos")}</CardTitle>
 					</CardHeader>
-					<CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						{photos.map((photo) => (
-							<figure key={photo.id} className="flex flex-col gap-1">
+							<figure
+								key={photo.id}
+								className="relative overflow-hidden rounded-md border"
+							>
 								{/* biome-ignore lint/performance/noImgElement: supabase storage image */}
 								<img
 									src={photo.url}
-									alt={photo.caption ?? "Project photo"}
-									className="h-48 w-full rounded-md border object-cover"
+									alt={photo.caption ?? t("projProjectPhoto")}
+									className="aspect-video w-full object-cover"
 								/>
 								{photo.caption && (
-									<figcaption className="text-muted-foreground text-xs">
+									<figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pt-8 pb-2 text-white text-xs">
 										{photo.caption}
 									</figcaption>
 								)}
@@ -169,13 +199,13 @@ export default async function ProjectDetailPage({
 			)}
 
 			{project.website && (
-				<p className="text-sm">
-					Website:{" "}
+				<p className="text-sm break-words">
+					{t("projWebsite")}:{" "}
 					<a
 						href={project.website}
 						target="_blank"
 						rel="noreferrer"
-						className="underline"
+						className="break-all underline"
 					>
 						{project.website}
 					</a>

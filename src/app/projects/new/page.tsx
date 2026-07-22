@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/utils/translations/server";
 import { requireEntrepreneur } from "../_entrepreneur-guard";
 import { ProjectForm } from "../project-form";
 
 export default async function NewProjectPage() {
+	const t = await getT();
 	const user = await requireEntrepreneur();
 	if (!user) redirect("/dashboard");
 
@@ -13,14 +15,12 @@ export default async function NewProjectPage() {
 	});
 
 	return (
-		<section className="mx-auto w-full max-w-6xl px-6 pb-16">
-			<div className="mb-6">
-				<h1 className="font-semibold text-2xl tracking-tight">New project</h1>
-				<p className="text-muted-foreground text-sm">
-					Fill in the basics — you can publish it when it's ready.
-				</p>
-			</div>
-			<ProjectForm areas={areas} />
+		<section className="mx-auto w-full max-w-content px-4 pb-16 md:px-6">
+			<ProjectForm
+				title={t("projNewProject")}
+				subtitle={t("projNewProjectDesc")}
+				areas={areas}
+			/>
 		</section>
 	);
 }

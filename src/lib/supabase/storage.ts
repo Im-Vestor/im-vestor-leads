@@ -9,17 +9,14 @@ export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 export type UploadKind = "image" | "video";
 
-export function validateMediaFile(kind: UploadKind, file: File): string | null {
+// Returns a translation key so callers can render it via t().
+export function validateMediaFile(kind: UploadKind, file: File) {
 	if (kind === "image") {
-		if (!IMAGE_MIME_TYPES.includes(file.type)) {
-			return "Image must be JPEG, PNG or WebP";
-		}
-		if (file.size > MAX_IMAGE_BYTES) return "Image must be 5MB or less";
+		if (!IMAGE_MIME_TYPES.includes(file.type)) return "errImageType" as const;
+		if (file.size > MAX_IMAGE_BYTES) return "errImageTooLarge" as const;
 	} else {
-		if (!VIDEO_MIME_TYPES.includes(file.type)) {
-			return "Video must be MP4, WebM or QuickTime";
-		}
-		if (file.size > MAX_VIDEO_BYTES) return "Video must be 50MB or less";
+		if (!VIDEO_MIME_TYPES.includes(file.type)) return "errVideoType" as const;
+		if (file.size > MAX_VIDEO_BYTES) return "errVideoTooLarge" as const;
 	}
 	return null;
 }
