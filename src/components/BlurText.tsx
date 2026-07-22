@@ -74,15 +74,8 @@ const BlurText: React.FC<BlurTextProps> = ({
 	);
 
 	const defaultTo = useMemo(
-		() => [
-			{
-				filter: "blur(5px)",
-				opacity: 0.5,
-				y: direction === "top" ? 5 : -5,
-			},
-			{ filter: "blur(0px)", opacity: 1, y: 0 },
-		],
-		[direction],
+		() => [{ filter: "blur(0px)", opacity: 1, y: 0 }],
+		[],
 	);
 
 	const fromSnapshot = animationFrom ?? defaultFrom;
@@ -116,10 +109,7 @@ const BlurText: React.FC<BlurTextProps> = ({
 						onAnimationComplete={
 							index === elements.length - 1 ? onAnimationComplete : undefined
 						}
-						style={{
-							display: "inline-block",
-							willChange: "transform, filter, opacity",
-						}}
+						style={{ display: "inline-block" }}
 					>
 						{segment === " " ? "\u00A0" : segment}
 						{animateBy === "words" && index < elements.length - 1 && "\u00A0"}

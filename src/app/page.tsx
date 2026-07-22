@@ -148,15 +148,14 @@ export default function Home() {
 						</GradientText>
 
 						<div className="mx-auto grid max-w-4xl grid-cols-1 gap-4 text-center md:grid-cols-3 md:grid-rows-3 md:text-start relative opacity-70">
-							<div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center animate-breathe">
-								<div className="absolute inset-0 flex items-center justify-center animate-breathe-slow">
+							<div className="absolute inset-0 z-10 pointer-events-none">
+								<div className="absolute top-1/2 left-1/2 h-2/3 w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E5CD82]/10 blur-3xl" />
+								<div className="absolute inset-0 transform-gpu animate-breathe-slow will-change-transform">
 									<Image
 										src="/images/vector-bg-features.svg"
 										alt="Im-Vestor Leads"
 										fill
-										priority
 									/>
-									<div className="absolute top-1/2 left-1/2 h-2/3 w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E5CD82]/10 blur-3xl" />
 								</div>
 							</div>
 							<SpotlightCard

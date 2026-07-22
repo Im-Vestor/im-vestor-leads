@@ -146,6 +146,12 @@ const Particles: React.FC<ParticlesProps> = ({
 			container.addEventListener("mousemove", handleMouseMove);
 		}
 
+		let visible = true;
+		const io = new IntersectionObserver(([entry]) => {
+			visible = entry.isIntersecting;
+		});
+		io.observe(container);
+
 		const count = particleCount;
 		const positions = new Float32Array(count * 3);
 		const randoms = new Float32Array(count * 4);
@@ -201,6 +207,10 @@ const Particles: React.FC<ParticlesProps> = ({
 
 		const update = (t: number) => {
 			animationFrameId = requestAnimationFrame(update);
+			if (!visible || document.hidden) {
+				lastTime = t;
+				return;
+			}
 			const delta = t - lastTime;
 			lastTime = t;
 			elapsed += delta * speed;
@@ -231,6 +241,7 @@ const Particles: React.FC<ParticlesProps> = ({
 			if (moveParticlesOnHover) {
 				container.removeEventListener("mousemove", handleMouseMove);
 			}
+			io.disconnect();
 			cancelAnimationFrame(animationFrameId);
 			if (container.contains(gl.canvas)) {
 				container.removeChild(gl.canvas);

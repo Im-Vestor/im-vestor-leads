@@ -27,6 +27,12 @@ export default function SpaceHero({ children }: { children: React.ReactNode }) {
 		setCanvasDimensions();
 		window.addEventListener("resize", setCanvasDimensions);
 
+		let visible = true;
+		const io = new IntersectionObserver(([entry]) => {
+			visible = entry.isIntersecting;
+		});
+		io.observe(canvas);
+
 		const stars: Star[] = [];
 		const shootingStars: ShootingStar[] = [];
 		const nebulas: Nebula[] = [];
@@ -116,6 +122,10 @@ export default function SpaceHero({ children }: { children: React.ReactNode }) {
 
 		const animate = (timestamp: number) => {
 			if (!canvasRef.current) return;
+			if (!visible || document.hidden) {
+				animationFrameId = requestAnimationFrame(animate);
+				return;
+			}
 			const canvas = canvasRef.current;
 			const ctx = canvas.getContext("2d");
 			if (!ctx) return;
@@ -294,6 +304,7 @@ export default function SpaceHero({ children }: { children: React.ReactNode }) {
 
 		return () => {
 			window.removeEventListener("resize", setCanvasDimensions);
+			io.disconnect();
 			cancelAnimationFrame(animationFrameId);
 		};
 	}, []);

@@ -230,6 +230,19 @@
 	animation: marquee-vertical var(--duration) linear infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+
+	.animate-breathe,
+	.animate-breathe-slow,
+	.animate-pulse-glow,
+	.animate-landing-fade-in,
+	.animate-scroll-x,
+	.animate-marquee,
+	.animate-marquee-vertical {
+		animation: none;
+	}
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
