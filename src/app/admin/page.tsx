@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateSupportUser, SUPPORT_CLERK_ID } from "@/lib/support";
+import { getT } from "@/utils/translations/server";
 
 async function getStats() {
 	const support = await getOrCreateSupportUser();
@@ -74,30 +75,35 @@ function StatCard({
 
 export default async function AdminDashboardPage() {
 	const stats = await getStats();
+	const t = await getT();
 
 	return (
-		<div className="flex flex-col gap-8">
+		<div className="flex flex-col gap-6 md:gap-8">
 			<div>
-				<h1 className="text-2xl font-bold">Admin dashboard</h1>
+				<h1 className="text-2xl font-bold">{t("adminDashboardTitle")}</h1>
 				<p className="text-sm text-muted-foreground">
-					Overview of users, conversations and support.
+					{t("adminDashboardSubtitle")}
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-				<StatCard label="Users" value={stats.totalUsers} icon={UsersIcon} />
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
-					label="Conversations"
+					label={t("adminDashboardUsers")}
+					value={stats.totalUsers}
+					icon={UsersIcon}
+				/>
+				<StatCard
+					label={t("adminDashboardConversations")}
 					value={stats.totalConversations}
 					icon={MessageSquareIcon}
 				/>
 				<StatCard
-					label="Messages"
+					label={t("adminDashboardMessages")}
 					value={stats.totalMessages}
 					icon={MessageSquareIcon}
 				/>
 				<StatCard
-					label="Banned words"
+					label={t("adminDashboardBannedWords")}
 					value={stats.bannedWords}
 					icon={ShieldIcon}
 				/>
@@ -108,17 +114,21 @@ export default async function AdminDashboardPage() {
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2 text-base">
 							<LifeBuoyIcon className="size-4" />
-							Support inbox
+							{t("adminDashboardSupportInbox")}
 						</CardTitle>
 						<CardDescription>
-							{stats.openThreads > 0
-								? `${stats.openThreads} conversation${stats.openThreads === 1 ? "" : "s"} waiting for a reply.`
-								: "No conversations waiting for a reply."}
+							{stats.openThreads > 0 ? (
+								<>
+									{stats.openThreads} {t("adminDashboardConversationsWaiting")}
+								</>
+							) : (
+								t("adminDashboardNoThreadsWaiting")
+							)}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Button render={<Link href="/admin/support" />}>
-							Open support inbox
+							{t("adminDashboardOpenSupportInbox")}
 							<ArrowRightIcon className="size-4" />
 						</Button>
 					</CardContent>
@@ -128,10 +138,10 @@ export default async function AdminDashboardPage() {
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2 text-base">
 							<ShieldIcon className="size-4" />
-							Moderation
+							{t("adminDashboardModeration")}
 						</CardTitle>
 						<CardDescription>
-							Review conversations, delete messages and manage banned words.
+							{t("adminDashboardModerationDesc")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -139,7 +149,7 @@ export default async function AdminDashboardPage() {
 							variant="outline"
 							render={<Link href="/admin/conversations" />}
 						>
-							Open moderation
+							{t("adminDashboardOpenModeration")}
 							<ArrowRightIcon className="size-4" />
 						</Button>
 					</CardContent>

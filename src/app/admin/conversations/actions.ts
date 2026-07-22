@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getT } from "@/utils/translations/server";
 import { requireAdmin } from "./_admin-guard";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -26,11 +27,12 @@ export async function listAllConversations(
 ): Promise<
 	ActionResult<{ items: AdminConversationItem[]; nextCursor: string | null }>
 > {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = listSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const where = parsed.data.search
 		? {
@@ -98,11 +100,12 @@ export type AdminMessageItem = {
 export async function getConversationMessagesAdmin(
 	input: z.input<typeof messagesSchema>,
 ): Promise<ActionResult<AdminMessageItem[]>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = messagesSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const rows = await prisma.message.findMany({
 		where: { conversationId: parsed.data.conversationId },
@@ -130,11 +133,12 @@ const deleteMessageSchema = z.object({
 export async function deleteMessage(
 	input: z.input<typeof deleteMessageSchema>,
 ): Promise<ActionResult<{ id: string }>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = deleteMessageSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const deleted = await prisma.message.delete({
 		where: { id: parsed.data.messageId },
@@ -157,14 +161,15 @@ const wordSchema = z.object({
 export async function addBannedWord(
 	input: z.input<typeof wordSchema>,
 ): Promise<ActionResult<{ id: string; word: string }>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = wordSchema.safeParse(input);
 	if (!parsed.success) {
 		return {
 			ok: false,
-			error: parsed.error.issues[0]?.message ?? "Invalid word",
+			error: parsed.error.issues[0]?.message ?? t("errInvalidWord"),
 		};
 	}
 
@@ -177,7 +182,7 @@ export async function addBannedWord(
 		revalidatePath("/admin/conversations");
 		return { ok: true, data: created };
 	} catch {
-		return { ok: false, error: "Word already exists" };
+		return { ok: false, error: t("errWordAlreadyExists") };
 	}
 }
 
@@ -188,11 +193,12 @@ const removeWordSchema = z.object({
 export async function removeBannedWord(
 	input: z.input<typeof removeWordSchema>,
 ): Promise<ActionResult<{ id: string }>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = removeWordSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const deleted = await prisma.bannedWord.delete({
 		where: { id: parsed.data.id },
@@ -205,8 +211,9 @@ export async function removeBannedWord(
 export async function listBannedWords(): Promise<
 	ActionResult<{ id: string; word: string; createdAt: Date }[]>
 > {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const rows = await prisma.bannedWord.findMany({
 		orderBy: { createdAt: "desc" },

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateSupportUser } from "@/lib/support";
+import { getT } from "@/utils/translations/server";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -47,8 +48,9 @@ async function assertSupportThread(conversationId: string, supportId: string) {
 export async function getSupportUnreadCount(): Promise<
 	ActionResult<{ count: number; supportUserId: string }>
 > {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const support = await getOrCreateSupportUser();
 	const count = await prisma.message.count({
@@ -65,8 +67,9 @@ export async function getSupportUnreadCount(): Promise<
 export async function listSupportConversations(): Promise<
 	ActionResult<{ items: SupportThread[]; supportUserId: string }>
 > {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const support = await getOrCreateSupportUser();
 
@@ -120,15 +123,16 @@ const idSchema = z.object({ conversationId: z.string().min(1) });
 export async function getSupportMessages(
 	input: z.input<typeof idSchema>,
 ): Promise<ActionResult<SupportMessage[]>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = idSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const support = await getOrCreateSupportUser();
 	if (!(await assertSupportThread(parsed.data.conversationId, support.id))) {
-		return { ok: false, error: "Forbidden" };
+		return { ok: false, error: t("errForbidden") };
 	}
 
 	const rows = await prisma.message.findMany({
@@ -154,11 +158,12 @@ const replySchema = z.object({
 export async function replyAsSupport(
 	input: z.input<typeof replySchema>,
 ): Promise<ActionResult<SupportMessage>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = replySchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid message" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidMessage") };
 
 	const support = await getOrCreateSupportUser();
 
@@ -169,7 +174,7 @@ export async function replyAsSupport(
 		},
 		include: { participants: { select: { id: true } } },
 	});
-	if (!conversation) return { ok: false, error: "Forbidden" };
+	if (!conversation) return { ok: false, error: t("errForbidden") };
 
 	const preview =
 		parsed.data.content.length > 100
@@ -219,15 +224,16 @@ export async function replyAsSupport(
 export async function markSupportRead(
 	input: z.input<typeof idSchema>,
 ): Promise<ActionResult<{ count: number }>> {
+	const t = await getT();
 	const admin = await requireAdmin();
-	if (!admin) return { ok: false, error: "Forbidden" };
+	if (!admin) return { ok: false, error: t("errForbidden") };
 
 	const parsed = idSchema.safeParse(input);
-	if (!parsed.success) return { ok: false, error: "Invalid input" };
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
 
 	const support = await getOrCreateSupportUser();
 	if (!(await assertSupportThread(parsed.data.conversationId, support.id))) {
-		return { ok: false, error: "Forbidden" };
+		return { ok: false, error: t("errForbidden") };
 	}
 
 	const result = await prisma.message.updateMany({
