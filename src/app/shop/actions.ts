@@ -128,8 +128,6 @@ export async function confirmCheckout(
 		});
 		if (fulfilled) return { status: "fulfilled" };
 
-		// Webhook hasn't landed (slow, or not forwarded in local dev) — fulfill
-		// here. The unique event id keeps this race-safe against the webhook.
 		try {
 			await fulfillPaidCheckoutSession(session);
 			return { status: "fulfilled" };

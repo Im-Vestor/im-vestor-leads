@@ -21,7 +21,6 @@ type WalletProps = {
 	subscriptionStatus: string | null;
 	canManageBilling: boolean;
 	showBuyMore?: boolean;
-	/** Rail layout: stacked stats, no description, full-width actions. */
 	compact?: boolean;
 };
 

@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-	--container-content: 80rem; /* = max-w-7xl: page content never exceeds this */
+	--container-content: 80rem;
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--font-sans: var(--font-sans);
@@ -51,9 +51,6 @@
 	--radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Im-Vestor "gilt prospectus" theme: void navy page, velvet violet cards
-   (rgb(29 26 44 / .55), from im-vestor-full), gold #EDD689→#D3B662 as the
-   single accent. All neutrals sit at violet hue ~295, never neutral gray. */
 :root {
 	--background: #030014;
 	--foreground: oklch(0.985 0.006 95);
@@ -137,7 +134,6 @@
 	}
 }
 
-/* ShinyText sweep */
 @keyframes shine {
 	0% {
 		background-position: 100% 50%;
@@ -148,7 +144,6 @@
 	}
 }
 
-/* GradientText loop */
 @keyframes gradient-flow {
 	0% {
 		background-position: 0% 50%;
@@ -203,12 +198,10 @@
 	background-image: linear-gradient(to right, #edd689, #d3b662);
 }
 
-/* Gold brand accent for icons/text (e.g. Support badge) */
 .text-brand-gold {
 	color: #d3b662;
 }
 
-/* Marquee (partners) animations */
 @keyframes marquee {
 	from {
 		transform: translateX(0);
@@ -260,15 +253,10 @@
 
 	html {
 		@apply font-sans;
-		/* Guard against accidental horizontal page scroll on mobile (off-canvas
-		   drawers, animated carousels — the embla loop carousel can briefly
-		   position looped slides off-screen). Must sit on the viewport scroller
-		   (<html>), not <body>, to take effect. `clip` (not `hidden`) does not
-		   create a scroll container, so `position: sticky` keeps working. */
+
 		overflow-x: clip;
 	}
 
-	/* Hide native number-input spinners */
 	input[type="number"] {
 		appearance: textfield;
 	}

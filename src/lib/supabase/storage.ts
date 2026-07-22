@@ -9,7 +9,6 @@ export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 export type UploadKind = "image" | "video";
 
-// Returns a translation key so callers can render it via t().
 export function validateMediaFile(kind: UploadKind, file: File) {
 	if (kind === "image") {
 		if (!IMAGE_MIME_TYPES.includes(file.type)) return "errImageType" as const;

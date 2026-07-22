@@ -8,7 +8,6 @@ import { getT } from "@/utils/translations/server";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-/** Finds the existing 1:1 conversation between two users, or creates it. */
 async function findOrCreateDirectConversation(aId: string, bId: string) {
 	return prisma.$transaction(async (tx) => {
 		const existing = await tx.conversation.findFirst({
@@ -67,7 +66,6 @@ export async function startConversationFromProfile(
 
 const leadSchema = z.object({ projectId: z.string().min(1) });
 
-/** An investor who unlocked a project's lead opens a chat with its founder. */
 export async function startConversationForLead(
 	input: z.input<typeof leadSchema>,
 ): Promise<ActionResult<{ conversationId: string }>> {
@@ -112,7 +110,6 @@ export async function startConversationForLead(
 	return { ok: true, data: { conversationId } };
 }
 
-/** Opens (or creates) the current user's conversation with Im-Vestor Support. */
 export async function startSupportConversation(): Promise<
 	ActionResult<{ conversationId: string }>
 > {

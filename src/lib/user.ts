@@ -45,7 +45,6 @@ export async function getOrCreateUser() {
 
 	const existing = await prisma.user.findUnique({ where: { clerkId: userId } });
 	if (existing) {
-		// Promote to admin if their email was added to ADMIN_EMAILS after signup.
 		if (existing.role !== UserRole.ADMIN && isAdminEmail(existing.email)) {
 			return prisma.user.update({
 				where: { id: existing.id },

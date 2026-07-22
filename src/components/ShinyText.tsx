@@ -6,8 +6,6 @@ interface ShinyTextProps {
 	shineColor?: string;
 }
 
-// ponytail: pure CSS keyframes (see `shine` in globals.css) — the rAF/motion
-// version repainted background-position from JS on every frame
 const ShinyText = ({
 	text,
 	speed = 3,

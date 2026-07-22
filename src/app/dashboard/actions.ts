@@ -9,7 +9,6 @@ export type UnlockResult =
 	| { ok: true; alreadyUnlocked: boolean }
 	| { ok: false; error: string };
 
-// Investor spends one lead credit to permanently unlock a project's full profile.
 export async function unlockProject(projectId: string): Promise<UnlockResult> {
 	const t = await getT();
 	const user = await getOrCreateUser();

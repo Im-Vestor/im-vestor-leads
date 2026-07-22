@@ -77,8 +77,6 @@ export default async function DashboardPage({
 	const me = await getOrCreateUser();
 	const t = await getT();
 
-	// Entrepreneurs get the mirror view: browse investors to open a conversation,
-	// with the same featured "Hyper Train" carousel and big cards as the investor view.
 	if (me?.role === "ENTREPRENEUR") {
 		const sp = await searchParams;
 		const sector = typeof sp.sector === "string" ? sp.sector : "";
@@ -103,7 +101,6 @@ export default async function DashboardPage({
 		} satisfies Prisma.UserSelect;
 
 		const now = new Date();
-		// Hypertrain: only boosted investor profiles ride the carousel.
 		const [investors, featured] = await Promise.all([
 			prisma.user.findMany({
 				where: investorWhere,
@@ -145,7 +142,6 @@ export default async function DashboardPage({
 	const value = typeof sp.value === "string" ? sp.value : "";
 	const range = VALUE_FILTERS.find((f) => f.key === value);
 
-	// ponytail: filters compare raw amounts across currencies; add FX conversion if non-EUR projects grow
 	const where: Prisma.ProjectWhereInput = {
 		status: "PUBLISHED",
 		...(sector ? { areas: { some: { id: sector } } } : {}),
@@ -170,7 +166,6 @@ export default async function DashboardPage({
 	} satisfies Prisma.ProjectInclude;
 
 	const now = new Date();
-	// Hypertrain: only boosted projects ride the carousel.
 	const [areas, projects, featured] = await Promise.all([
 		prisma.area.findMany({
 			orderBy: { name: "asc" },

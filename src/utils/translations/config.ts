@@ -1,6 +1,3 @@
-// Neutral i18n config shared by client (LanguageContext) and server (server.ts).
-// No "use client" / "server-only" directive so it is safe to import from both.
-
 export type Language =
 	| "en-US"
 	| "pt-PT"

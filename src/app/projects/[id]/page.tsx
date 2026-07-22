@@ -37,7 +37,6 @@ export default async function ProjectDetailPage({
 
 	const canEdit = project.entrepreneurId === user.id || user.role === "ADMIN";
 	if (!canEdit) {
-		// Non-owners may view only a project they have permanently unlocked.
 		const unlock = await prisma.projectUnlock.findUnique({
 			where: { userId_projectId: { userId: user.id, projectId: id } },
 			select: { id: true },

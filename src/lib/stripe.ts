@@ -19,7 +19,6 @@ export function getStripe(): Stripe {
 
 export type ShopCategory = "subscription" | "pokes" | "leads" | "hypertrain";
 
-// Stripe product: prod_UvrFOwezlTyHT3
 export const HYPERTRAIN_DAYS = 7;
 
 export type ShopProduct = {

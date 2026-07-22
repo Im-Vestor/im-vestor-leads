@@ -7,8 +7,6 @@ interface GradientTextProps {
 	animationSpeed?: number;
 }
 
-// ponytail: pure CSS keyframes (see `gradient-flow` in globals.css) — the
-// rAF/motion version updated background-position from JS on every frame
 export default function GradientText({
 	children,
 	className = "",

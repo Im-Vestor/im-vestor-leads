@@ -57,7 +57,6 @@ export async function applyHypertrainToProject(
 			data: { hypertrainUntil: boostUntil() },
 		});
 	} catch {
-		// Refund the ticket if the boost could not be written.
 		await prisma.user.update({
 			where: { id: user.id },
 			data: { hypertrainTickets: { increment: 1 } },

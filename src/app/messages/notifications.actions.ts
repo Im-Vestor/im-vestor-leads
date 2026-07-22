@@ -62,8 +62,6 @@ export async function getMyRole(): Promise<ActionResult<UserRole>> {
 	});
 	if (!me) return { ok: false, error: t("errUserNotFound") };
 
-	// Promote to admin if their email was added to ADMIN_EMAILS after signup, so
-	// the Admin link surfaces on the next page load without visiting /messages.
 	if (me.role !== UserRole.ADMIN && isAdminEmail(me.email)) {
 		await prisma.user.update({
 			where: { id: me.id },

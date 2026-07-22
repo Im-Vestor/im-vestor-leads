@@ -67,8 +67,6 @@ const NAV_TAIL = [
 	{ href: "/shop", labelKey: "navShop", icon: ShoppingBagIcon },
 ] satisfies NavLink[];
 
-// Shared nav state. Called ONCE per signed-in header (opens a realtime unread
-// subscription), then handed to both the desktop bar and the mobile drawer.
 type NavData = {
 	links: NavLink[];
 	isAdmin: boolean;
@@ -97,8 +95,6 @@ function useNavData(): NavData {
 		if (pathname?.startsWith("/messages")) void refresh();
 	}, [pathname, refresh]);
 
-	// Entrepreneurs browse investors (person icon); investors browse projects
-	// (rocket icon). Same /dashboard route, role-aware label and icon.
 	const browseLabel: TranslationKey =
 		role === "ENTREPRENEUR"
 			? "navInvestors"
@@ -168,8 +164,6 @@ export const Header = () => {
 	);
 };
 
-// Renders both presentations from a single data source: the horizontal bar
-// (icons at tablet, labels at desktop) and the mobile hamburger drawer.
 const SignedInNav = () => {
 	const data = useNavData();
 	return (
@@ -331,8 +325,6 @@ const UserMenu = () => {
 	);
 };
 
-// Hamburger + slide-in drawer. Mobile-only (md:hidden); folds the horizontal
-// nav and the user menu into one full-height sheet with 44px+ touch rows.
 const MobileNav = ({ data }: { data: NavData }) => {
 	const t = useTranslation();
 	const pathname = usePathname();

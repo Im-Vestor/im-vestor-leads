@@ -25,7 +25,6 @@ export const SECTOR_LABEL_KEYS: Record<Sector, TranslationKey> = {
 	[Sector.BIOTECH]: "sectorBiotech",
 };
 
-// Numeric currency ranges — language-neutral, no translation needed.
 export const INVESTMENT_RANGE_LABELS: Record<InvestmentRange, string> = {
 	[InvestmentRange.R_10K_50K]: "€10K–€50K",
 	[InvestmentRange.R_50K_200K]: "€50K–€200K",
@@ -51,7 +50,6 @@ export const COUNTRIES = [
 	"Brazil",
 ] as const;
 
-// Keyed by the English country string stored as the option value.
 export const COUNTRY_LABEL_KEYS: Record<string, TranslationKey> = {
 	Portugal: "countryPortugal",
 	Spain: "countrySpain",

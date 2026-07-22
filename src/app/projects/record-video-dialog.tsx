@@ -66,8 +66,6 @@ function formatSeconds(s: number) {
 	return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-// Chrome records webm without duration metadata; seeking far past the end forces
-// the browser to compute it.
 function loadDuration(url: string): Promise<number> {
 	return new Promise((resolve) => {
 		const v = document.createElement("video");
@@ -89,9 +87,6 @@ function loadDuration(url: string): Promise<number> {
 	});
 }
 
-// Re-encode [start, end] by playing the clip offscreen through captureStream.
-// Audio goes through a WebAudio graph that is captured but never reaches the
-// speakers, so trimming is silent for the user.
 async function trimClip(
 	url: string,
 	start: number,
@@ -183,7 +178,6 @@ export function RecordVideoDialog({
 	const [videoDeviceId, setVideoDeviceId] = useState("");
 	const [audioDeviceId, setAudioDeviceId] = useState("");
 
-	// Count recorded seconds (paused time excluded) and auto-stop at the cap.
 	useEffect(() => {
 		if (stage !== "recording") return;
 		const id = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -197,7 +191,6 @@ export function RecordVideoDialog({
 		}
 	}, [elapsed]);
 
-	// Camera is only requested after the user picks "record" in the chooser.
 	const needCamera = open && stage !== "choose";
 
 	useEffect(() => {
@@ -212,7 +205,6 @@ export function RecordVideoDialog({
 				streamRef.current = stream;
 				if (videoRef.current) videoRef.current.srcObject = stream;
 				setReady(true);
-				// Labels are only exposed after permission is granted.
 				const devices = await navigator.mediaDevices.enumerateDevices();
 				if (cancelled) return;
 				setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
@@ -257,7 +249,6 @@ export function RecordVideoDialog({
 		};
 	}, [needCamera, onOpenChange, t]);
 
-	// Imperative device switch — avoids effect-driven camera re-acquire loops.
 	async function switchDevice(next: { video?: string; audio?: string }) {
 		const videoId = next.video ?? videoDeviceId;
 		const audioId = next.audio ?? audioDeviceId;
@@ -281,7 +272,6 @@ export function RecordVideoDialog({
 		}
 	}
 
-	// Revoke stale object URLs (also runs on unmount).
 	useEffect(() => {
 		return () => {
 			if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -292,7 +282,6 @@ export function RecordVideoDialog({
 		const url = URL.createObjectURL(recorded);
 		setBlob(recorded);
 		setPreviewUrl(url);
-		// srcObject wins over src — detach the live stream for playback.
 		if (videoRef.current) videoRef.current.srcObject = null;
 		setStage("preview");
 		void loadDuration(url).then((d) => {

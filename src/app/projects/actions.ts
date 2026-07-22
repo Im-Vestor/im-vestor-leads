@@ -186,7 +186,6 @@ export async function updateProject(
 			await banPhrase(parsed.data.name, project.entrepreneurId);
 		}
 
-		// Best-effort storage cleanup of files no longer referenced.
 		const kept = new Set(
 			[
 				parsed.data.logo,
@@ -207,9 +206,7 @@ export async function updateProject(
 				await getSupabaseAdmin()
 					.storage.from(PROJECT_MEDIA_BUCKET)
 					.remove(removed);
-			} catch {
-				// ignore — orphaned files are harmless
-			}
+			} catch {}
 		}
 
 		revalidateProjectPaths(id);
@@ -275,7 +272,6 @@ export async function deleteProject(id: string): Promise<ProjectActionResult> {
 		return { ok: false, error: t("errCouldNotDeleteProject") };
 	}
 
-	// Best-effort storage cleanup; DB row is already gone.
 	const paths = [
 		full?.logo,
 		full?.videoPitchUrl,
@@ -287,9 +283,7 @@ export async function deleteProject(id: string): Promise<ProjectActionResult> {
 	if (paths.length > 0) {
 		try {
 			await getSupabaseAdmin().storage.from(PROJECT_MEDIA_BUCKET).remove(paths);
-		} catch {
-			// ignore — orphaned files are harmless
-		}
+		} catch {}
 	}
 
 	revalidateProjectPaths(id);

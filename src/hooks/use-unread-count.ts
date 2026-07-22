@@ -21,7 +21,6 @@ export function useUnreadCount(userId: string | null) {
 		void refresh();
 	}, [userId, refresh]);
 
-	// New incoming message → an unread notification is inserted for me.
 	useRealtimeNotifications(
 		userId,
 		useCallback(() => {
@@ -29,7 +28,6 @@ export function useUnreadCount(userId: string | null) {
 		}, [refresh]),
 	);
 
-	// A conversation was marked read elsewhere in the tree → recount.
 	useEffect(() => subscribeMessagesRead(() => void refresh()), [refresh]);
 
 	return { count, refresh };

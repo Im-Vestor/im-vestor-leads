@@ -1,8 +1,3 @@
-/**
- * Lightweight cross-component signals so unread badges in the header/nav can
- * refresh the moment a conversation is read elsewhere in the tree (the badge
- * and the chat view are siblings, not parent/child, so props can't bridge them).
- */
 const MESSAGES_READ = "imv:messages-read";
 const SUPPORT_READ = "imv:support-read";
 

@@ -2,7 +2,6 @@ import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
-/** Emails (lowercased) that should be granted the ADMIN role automatically. */
 export function getAdminEmails(): string[] {
 	return (process.env.ADMIN_EMAILS ?? "")
 		.split(",")
@@ -15,7 +14,6 @@ export function isAdminEmail(email: string | null | undefined): boolean {
 	return getAdminEmails().includes(email.toLowerCase());
 }
 
-/** Returns the current user if they are an admin, otherwise null. */
 export async function requireAdmin() {
 	const { userId: clerkId } = await auth();
 	if (!clerkId) return null;

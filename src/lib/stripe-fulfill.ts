@@ -12,9 +12,6 @@ export function stripeCustomerId(
 	return typeof customer === "string" ? customer : customer.id;
 }
 
-// Idempotent: the unique insert into processed_stripe_events guards double
-// crediting (P2002 bubbles up to the caller). Shared by the webhook and the
-// post-checkout confirm fallback, so purchases land even without a webhook.
 export async function fulfillPaidCheckoutSession(
 	session: Stripe.Checkout.Session,
 	eventType = "checkout.session.completed",
@@ -63,7 +60,6 @@ export async function fulfillPaidCheckoutSession(
 		return;
 	}
 
-	// Hypertrain tickets can be bought in bulk (adjustable quantity at checkout).
 	let quantity = 1;
 	if (grant.hypertrainTickets) {
 		try {

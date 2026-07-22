@@ -6,8 +6,6 @@ interface SpotlightCardProps extends React.PropsWithChildren {
 	spotlightColor?: `rgba(${number}, ${number}, ${number}, ${number})`;
 }
 
-// ponytail: spotlight position via CSS vars written straight to the DOM —
-// setState per mousemove re-rendered the whole card tree every frame
 const SpotlightCard: React.FC<SpotlightCardProps> = ({
 	children,
 	className = "",
@@ -31,7 +29,6 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
 			className={`group/spot relative overflow-hidden ${className}`}
 		>
 			{children}
-			{/* after children so it also glows over opaque backgrounds (e.g. bg-card) */}
 			<div
 				className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-in-out group-hover/spot:opacity-60"
 				style={{
