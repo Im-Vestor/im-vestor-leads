@@ -446,7 +446,7 @@ const DrawerRow = ({
 	badge?: string | number;
 }) => {
 	const className = cn(
-		"flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
+		"flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors",
 		active ? "bg-muted text-gold" : "hover:bg-muted",
 	);
 	const inner = (
