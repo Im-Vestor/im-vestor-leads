@@ -1,9 +1,10 @@
 import { InvestmentRange, Sector, UserRole } from "@/generated/prisma/enums";
+import type { TranslationKey } from "@/utils/translations";
 
-export const ROLE_LABELS: Record<UserRole, string> = {
-	[UserRole.ENTREPRENEUR]: "Entrepreneur",
-	[UserRole.INVESTOR]: "Investor",
-	[UserRole.ADMIN]: "Admin",
+export const ROLE_LABEL_KEYS: Record<UserRole, TranslationKey> = {
+	[UserRole.ENTREPRENEUR]: "roleEntrepreneur",
+	[UserRole.INVESTOR]: "roleInvestor",
+	[UserRole.ADMIN]: "roleAdmin",
 };
 
 export const SIGNUP_ROLES: UserRole[] = [
@@ -11,19 +12,20 @@ export const SIGNUP_ROLES: UserRole[] = [
 	UserRole.INVESTOR,
 ];
 
-export const SECTOR_LABELS: Record<Sector, string> = {
-	[Sector.TECHNOLOGY]: "Technology",
-	[Sector.HEALTHCARE]: "Healthcare",
-	[Sector.FINTECH]: "Fintech",
-	[Sector.EDTECH]: "EdTech",
-	[Sector.CLEANTECH]: "CleanTech",
-	[Sector.ECOMMERCE]: "E-Commerce",
-	[Sector.SAAS]: "SaaS",
-	[Sector.AGRITECH]: "AgriTech",
-	[Sector.PROPTECH]: "PropTech",
-	[Sector.BIOTECH]: "BioTech",
+export const SECTOR_LABEL_KEYS: Record<Sector, TranslationKey> = {
+	[Sector.TECHNOLOGY]: "sectorTechnology",
+	[Sector.HEALTHCARE]: "sectorHealthcare",
+	[Sector.FINTECH]: "sectorFintech",
+	[Sector.EDTECH]: "sectorEdtech",
+	[Sector.CLEANTECH]: "sectorCleantech",
+	[Sector.ECOMMERCE]: "sectorEcommerce",
+	[Sector.SAAS]: "sectorSaas",
+	[Sector.AGRITECH]: "sectorAgritech",
+	[Sector.PROPTECH]: "sectorProptech",
+	[Sector.BIOTECH]: "sectorBiotech",
 };
 
+// Numeric currency ranges — language-neutral, no translation needed.
 export const INVESTMENT_RANGE_LABELS: Record<InvestmentRange, string> = {
 	[InvestmentRange.R_10K_50K]: "€10K–€50K",
 	[InvestmentRange.R_50K_200K]: "€50K–€200K",
@@ -48,3 +50,16 @@ export const COUNTRIES = [
 	"USA",
 	"Brazil",
 ] as const;
+
+// Keyed by the English country string stored as the option value.
+export const COUNTRY_LABEL_KEYS: Record<string, TranslationKey> = {
+	Portugal: "countryPortugal",
+	Spain: "countrySpain",
+	France: "countryFrance",
+	Germany: "countryGermany",
+	UK: "countryUk",
+	Italy: "countryItaly",
+	Netherlands: "countryNetherlands",
+	USA: "countryUsa",
+	Brazil: "countryBrazil",
+};

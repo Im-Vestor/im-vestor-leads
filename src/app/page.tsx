@@ -113,7 +113,7 @@ export default function Home() {
 									animateBy="words"
 									direction="top"
 									delay={120}
-									className="justify-center font-['Segoe UI'] text-3xl sm:text-5xl md:text-[84px] leading-[120%] [&>span]:bg-gradient-to-b [&>span]:from-white [&>span]:to-white/50 [&>span]:bg-clip-text [&>span]:text-transparent"
+									className="justify-center font-['Segoe UI'] text-3xl sm:text-5xl md:text-6xl lg:text-[84px] leading-[120%] [&>span]:bg-gradient-to-b [&>span]:from-white [&>span]:to-white/50 [&>span]:bg-clip-text [&>span]:text-transparent"
 								/>
 							</h1>
 							<span className="mt-4 md:mt-6 w-full md:w-2/3 px-4 font-['Segoe UI'] text-base md:text-xl leading-[140%] font-light">
@@ -136,13 +136,13 @@ export default function Home() {
 					</div>
 
 					<div className="mt-16 md:mt-32 py-12 md:py-24 w-full px-4 bg-gradient-to-b from-[#030014] to-black">
-						<h2 className="px-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-[84px] leading-[120%] bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
+						<h2 className="px-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-6xl lg:text-[84px] leading-[120%] bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent">
 							{t("whyChooseImVestor")}
 						</h2>
 						<GradientText
 							colors={["#EDD689", "#D3B662", "#8A6E2F", "#EDD689"]}
 							animationSpeed={5}
-							className="mb-8 md:mb-12 px-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-[84px] leading-[120%]"
+							className="mb-8 md:mb-12 px-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-6xl lg:text-[84px] leading-[120%]"
 						>
 							Im-Vestor Leads
 						</GradientText>
@@ -259,7 +259,7 @@ export default function Home() {
 					<StarField>
 						<div className="relative w-full overflow-hidden">
 							<div className="relative z-10 mb-20 px-4">
-								<h2 className="mb-8 md:mb-12 mx-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-[84px] leading-[120%] bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent md:mx-0">
+								<h2 className="mb-8 md:mb-12 mx-4 font-['Segoe UI'] text-3xl sm:text-5xl md:text-6xl lg:text-[84px] leading-[120%] bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent md:mx-0">
 									{t("businessRevolution")}
 								</h2>
 								<div className="p-6">

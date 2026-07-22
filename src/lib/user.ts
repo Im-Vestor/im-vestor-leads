@@ -15,18 +15,21 @@ function generateReferralCode(seed: string): string {
 	return `${base}-${suffix}`;
 }
 
-export async function syncNameToClerk(clerkId: string, name: string | null) {
-	if (!name) return;
-	const [firstName, ...rest] = name.split(/\s+/);
+export async function syncNameToClerk(
+	clerkId: string,
+	name: string | null,
+): Promise<boolean> {
+	const [firstName = "", ...rest] = (name ?? "").trim().split(/\s+/);
 	try {
 		const client = await clerkClient();
 		await client.users.updateUser(clerkId, {
 			firstName,
 			lastName: rest.join(" "),
 		});
+		return true;
 	} catch (error) {
-		// ponytail: Clerk sync is best-effort — DB is source of truth
 		console.error("Failed to sync name to Clerk", error);
+		return false;
 	}
 }
 

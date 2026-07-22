@@ -5,13 +5,12 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-	--container-content: 72rem;
-	/* = max-w-6xl: page content never exceeds this */
+	--container-content: 80rem; /* = max-w-7xl: page content never exceeds this */
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--font-sans: var(--font-sans);
 	--font-mono: var(--font-geist-mono);
-	--font-heading: var(--font-fraunces);
+	--font-heading: var(--font-sans);
 	--color-gold: var(--gold);
 	--color-gold-deep: var(--gold-deep);
 	--color-sidebar-ring: var(--sidebar-ring);
@@ -261,6 +260,12 @@
 
 	html {
 		@apply font-sans;
+		/* Guard against accidental horizontal page scroll on mobile (off-canvas
+		   drawers, animated carousels — the embla loop carousel can briefly
+		   position looped slides off-screen). Must sit on the viewport scroller
+		   (<html>), not <body>, to take effect. `clip` (not `hidden`) does not
+		   create a scroll container, so `position: sticky` keeps working. */
+		overflow-x: clip;
 	}
 
 	/* Hide native number-input spinners */
