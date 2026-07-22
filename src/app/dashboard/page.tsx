@@ -1,7 +1,15 @@
 import type { Prisma } from "@/generated/prisma/client";
+import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import { getDisplayName } from "@/lib/messages/display-name";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
 import { CURRENCY_SYMBOLS } from "../projects/schema";
 import { DashboardClient, type LeadProject } from "./dashboard-client";
+import {
+	type InvestorLead,
+	InvestorsDashboardClient,
+} from "./investors-dashboard-client";
 
 const VALUE_FILTERS = [
 	{ key: "10k-50k", label: "€10K–€50K", min: 10_000, max: 50_000 },
@@ -21,16 +29,38 @@ type ProjectWithRefs = Prisma.ProjectGetPayload<{
 	};
 }>;
 
-function toLead(project: ProjectWithRefs): LeadProject {
-	const cover = project.media[0] ?? null;
-	return {
+function toLead(
+	project: ProjectWithRefs,
+	unlocked: boolean,
+	t: Awaited<ReturnType<typeof getT>>,
+): LeadProject {
+	const areaNames = project.areas.map((a) => a.name);
+	const base = {
 		id: project.id,
-		name: project.name,
-		desc: project.quickSolution ?? project.about ?? "",
-		areaNames: project.areas.map((a) => a.name),
+		areaNames,
 		valueLabel: `${CURRENCY_SYMBOLS[project.currency]}${compact.format(project.investmentGoal)}`,
 		country: project.country,
 		date: project.createdAt.toISOString().slice(0, 10),
+		unlocked,
+	};
+
+	if (!unlocked) {
+		return {
+			...base,
+			name: areaNames[0]
+				? `${areaNames[0]} ${t("dashOpportunitySuffix")}`
+				: t("dashInvestmentOpportunity"),
+			desc: (project.quickSolution ?? "").slice(0, 250),
+			cover: null,
+		};
+	}
+
+	const cover = project.media[0] ?? null;
+	const about = project.about ?? project.quickSolution ?? "";
+	return {
+		...base,
+		name: project.name,
+		desc: about.length > 250 ? `${about.slice(0, 250).trimEnd()}…` : about,
 		cover: cover
 			? { url: cover.url, alt: cover.caption ?? project.name }
 			: project.logo
@@ -44,6 +74,71 @@ export default async function DashboardPage({
 }: {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+	const me = await getOrCreateUser();
+	const t = await getT();
+
+	// Entrepreneurs get the mirror view: browse investors to open a conversation,
+	// with the same featured "Hyper Train" carousel and big cards as the investor view.
+	if (me?.role === "ENTREPRENEUR") {
+		const sp = await searchParams;
+		const sector = typeof sp.sector === "string" ? sp.sector : "";
+		const country = typeof sp.country === "string" ? sp.country : "";
+		const capacity = typeof sp.capacity === "string" ? sp.capacity : "";
+
+		const investorWhere: Prisma.UserWhereInput = {
+			role: "INVESTOR",
+			...(sector ? { sectors: { has: sector as Sector } } : {}),
+			...(country ? { country } : {}),
+			...(capacity ? { investmentCapacity: capacity as InvestmentRange } : {}),
+		};
+
+		const investorSelect = {
+			id: true,
+			name: true,
+			email: true,
+			country: true,
+			sectors: true,
+			investmentCapacity: true,
+			createdAt: true,
+		} satisfies Prisma.UserSelect;
+
+		const now = new Date();
+		// Hypertrain: only boosted investor profiles ride the carousel.
+		const [investors, featured] = await Promise.all([
+			prisma.user.findMany({
+				where: investorWhere,
+				orderBy: { createdAt: "desc" },
+				take: 60,
+				select: investorSelect,
+			}),
+			prisma.user.findMany({
+				where: { role: "INVESTOR", hypertrainUntil: { gt: now } },
+				orderBy: { hypertrainUntil: "asc" },
+				take: 8,
+				select: investorSelect,
+			}),
+		]);
+
+		const toInvestor = (
+			u: Prisma.UserGetPayload<{ select: typeof investorSelect }>,
+		): InvestorLead => ({
+			id: u.id,
+			name: getDisplayName(u),
+			country: u.country,
+			capacity: u.investmentCapacity,
+			sectors: u.sectors,
+			date: u.createdAt.toISOString().slice(0, 10),
+		});
+
+		return (
+			<InvestorsDashboardClient
+				featured={featured.map(toInvestor)}
+				investors={investors.map(toInvestor)}
+				filters={{ sector, country, capacity }}
+			/>
+		);
+	}
+
 	const sp = await searchParams;
 	const sector = typeof sp.sector === "string" ? sp.sector : "";
 	const country = typeof sp.country === "string" ? sp.country : "";
@@ -74,6 +169,8 @@ export default async function DashboardPage({
 		},
 	} satisfies Prisma.ProjectInclude;
 
+	const now = new Date();
+	// Hypertrain: only boosted projects ride the carousel.
 	const [areas, projects, featured] = await Promise.all([
 		prisma.area.findMany({
 			orderBy: { name: "asc" },
@@ -86,20 +183,33 @@ export default async function DashboardPage({
 			take: 60,
 		}),
 		prisma.project.findMany({
-			where: { status: "PUBLISHED" },
+			where: { status: "PUBLISHED", hypertrainUntil: { gt: now } },
 			include,
-			orderBy: { createdAt: "desc" },
+			orderBy: { hypertrainUntil: "asc" },
 			take: 8,
 		}),
 	]);
+
+	const unlockedIds = me
+		? new Set(
+				(
+					await prisma.projectUnlock.findMany({
+						where: { userId: me.id },
+						select: { projectId: true },
+					})
+				).map((u) => u.projectId),
+			)
+		: new Set<string>();
 
 	return (
 		<DashboardClient
 			areas={areas}
 			valueFilters={VALUE_FILTERS.map(({ key, label }) => ({ key, label }))}
-			featured={featured.map(toLead)}
-			projects={projects.map(toLead)}
+			featured={featured.map((p) => toLead(p, unlockedIds.has(p.id), t))}
+			projects={projects.map((p) => toLead(p, unlockedIds.has(p.id), t))}
 			filters={{ sector, country, value }}
+			canUnlock={me?.role === "INVESTOR" || me?.role === "ADMIN"}
+			leadCredits={me?.leadCredits ?? 0}
 		/>
 	);
 }

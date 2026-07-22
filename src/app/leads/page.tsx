@@ -10,8 +10,10 @@ import {
 import { getDisplayName } from "@/lib/messages/display-name";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
 
 export default async function LeadsPage() {
+	const t = await getT();
 	const me = await getOrCreateUser();
 	if (!me) redirect("/sign-in");
 
@@ -32,14 +34,14 @@ export default async function LeadsPage() {
 		<div className="mx-auto w-full max-w-4xl px-4 py-8">
 			<Card>
 				<CardHeader>
-					<CardTitle>Leads</CardTitle>
-					<CardDescription>
-						Browse other users on the platform and start a conversation.
-					</CardDescription>
+					<CardTitle>{t("projLeads")}</CardTitle>
+					<CardDescription>{t("projLeadsDesc")}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					{others.length === 0 ? (
-						<p className="text-sm text-muted-foreground">No other users yet.</p>
+						<p className="text-sm text-muted-foreground">
+							{t("projNoOtherUsers")}
+						</p>
 					) : (
 						<ul className="flex flex-col gap-3">
 							{others.map((u) => (
@@ -47,9 +49,11 @@ export default async function LeadsPage() {
 									key={u.id}
 									className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
 								>
-									<div className="flex flex-col">
-										<span className="font-medium">{getDisplayName(u)}</span>
-										<span className="text-xs text-muted-foreground">
+									<div className="flex min-w-0 flex-1 flex-col">
+										<span className="truncate font-medium">
+											{getDisplayName(u)}
+										</span>
+										<span className="truncate text-xs text-muted-foreground">
 											{u.role} {u.country ? `· ${u.country}` : ""}
 										</span>
 									</div>
