@@ -2,18 +2,13 @@ import type Stripe from "stripe";
 import { env } from "@/env";
 import { prisma } from "@/lib/prisma";
 import { getStripe, PRODUCT_GRANTS } from "@/lib/stripe";
+import {
+	stripeCustomerId as customerId,
+	fulfillPaidCheckoutSession,
+} from "@/lib/stripe-fulfill";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const POKE_SUB_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
-
-function customerId(
-	customer: string | Stripe.Customer | Stripe.DeletedCustomer | null,
-): string | undefined {
-	if (!customer) return undefined;
-	return typeof customer === "string" ? customer : customer.id;
-}
 
 function isDuplicateEventError(err: unknown): boolean {
 	return (err as { code?: string })?.code === "P2002";
@@ -71,66 +66,7 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
 
 async function fulfillCheckout(event: Stripe.Event): Promise<void> {
 	const session = event.data.object as Stripe.Checkout.Session;
-	const userId = session.metadata?.userId;
-	const productId = session.metadata?.productId;
-	const grant = productId ? PRODUCT_GRANTS[productId] : undefined;
-
-	if (!userId || !grant) {
-		console.warn("[stripe webhook] checkout without known user/product", {
-			userId,
-			productId,
-		});
-		return;
-	}
-
-	const customer = customerId(session.customer);
-	const isPokeSubscription = session.mode === "subscription" && !grant.plan;
-
-	if (isPokeSubscription) {
-		const existing = await prisma.user.findUnique({
-			where: { id: userId },
-			select: { pokeSubCreditedAt: true },
-		});
-		const last = existing?.pokeSubCreditedAt?.getTime() ?? 0;
-		const onCooldown = Date.now() - last < POKE_SUB_COOLDOWN_MS;
-
-		await prisma.$transaction([
-			prisma.processedStripeEvent.create({
-				data: { id: session.id, type: event.type },
-			}),
-			prisma.user.updateMany({
-				where: { id: userId },
-				data: {
-					...(onCooldown
-						? {}
-						: {
-								pokes: { increment: grant.pokes ?? 0 },
-								pokeSubCreditedAt: new Date(),
-							}),
-					pokeCycleHigh: grant.pokes ?? 0,
-					...(customer ? { stripeCustomerId: customer } : {}),
-				},
-			}),
-		]);
-		return;
-	}
-
-	await prisma.$transaction([
-		prisma.processedStripeEvent.create({
-			data: { id: session.id, type: event.type },
-		}),
-		prisma.user.updateMany({
-			where: { id: userId },
-			data: {
-				pokes: { increment: grant.pokes ?? 0 },
-				leadCredits: { increment: grant.leadCredits ?? 0 },
-				...(grant.plan
-					? { subscriptionPlan: grant.plan, subscriptionStatus: "active" }
-					: {}),
-				...(customer ? { stripeCustomerId: customer } : {}),
-			},
-		}),
-	]);
+	return fulfillPaidCheckoutSession(session, event.type);
 }
 
 async function fulfillInvoice(event: Stripe.Event): Promise<void> {

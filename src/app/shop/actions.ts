@@ -8,11 +8,13 @@ import {
 	getStripe,
 	PRODUCT_GRANTS,
 } from "@/lib/stripe";
+import { fulfillPaidCheckoutSession } from "@/lib/stripe-fulfill";
 import {
 	getCurrentUser,
 	getOrCreateStripeCustomerId,
 	getOrCreateUser,
 } from "@/lib/user";
+import { getT } from "@/utils/translations/server";
 
 export type CheckoutResult =
 	| { ok: true; url: string }
@@ -31,18 +33,19 @@ export async function createCheckoutSession(
 	productId: string,
 	recurring = false,
 ): Promise<CheckoutResult> {
+	const t = await getT();
 	const user = await getOrCreateUser();
-	if (!user) return { ok: false, error: "You must be signed in to buy." };
+	if (!user) return { ok: false, error: t("errMustSignInToBuy") };
 
 	const product = getShopProduct(productId);
-	if (!product) return { ok: false, error: "Unknown product." };
+	if (!product) return { ok: false, error: t("errUnknownProduct") };
 
 	const useRecurring = recurring && !!product.recurring;
 	const priceId = useRecurring ? product.recurring?.priceId : product.priceId;
 	if (!priceId) {
 		return {
 			ok: false,
-			error: `${product.name} is not available yet (no Stripe price configured).`,
+			error: `${product.name} ${t("errProductNotAvailable")}`,
 		};
 	}
 
@@ -58,8 +61,7 @@ export async function createCheckoutSession(
 		) {
 			return {
 				ok: false,
-				error:
-					"You already have an active poke plan. Use Switch to change plans instead.",
+				error: t("errAlreadyActivePokePlan"),
 			};
 		}
 
@@ -76,7 +78,17 @@ export async function createCheckoutSession(
 
 		const session = await stripe.checkout.sessions.create({
 			mode,
-			line_items: [{ price: priceId, quantity: 1 }],
+			line_items: [
+				{
+					price: priceId,
+					quantity: 1,
+					...(product.category === "hypertrain"
+						? {
+								adjustable_quantity: { enabled: true, minimum: 1, maximum: 20 },
+							}
+						: {}),
+				},
+			],
 			customer,
 			success_url: `${origin}/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
 			cancel_url: `${origin}/shop?checkout=cancelled`,
@@ -85,12 +97,12 @@ export async function createCheckoutSession(
 		});
 
 		if (!session.url) {
-			return { ok: false, error: "Stripe did not return a checkout URL." };
+			return { ok: false, error: t("errStripeNoUrl") };
 		}
 		return { ok: true, url: session.url };
 	} catch (err) {
 		console.error("[shop] checkout error:", err);
-		return { ok: false, error: "Could not start checkout. Try again." };
+		return { ok: false, error: t("errCouldNotStartCheckout") };
 	}
 }
 
@@ -114,7 +126,19 @@ export async function confirmCheckout(
 		const fulfilled = await prisma.processedStripeEvent.findUnique({
 			where: { id: sessionId },
 		});
-		return fulfilled ? { status: "fulfilled" } : { status: "pending" };
+		if (fulfilled) return { status: "fulfilled" };
+
+		// Webhook hasn't landed (slow, or not forwarded in local dev) — fulfill
+		// here. The unique event id keeps this race-safe against the webhook.
+		try {
+			await fulfillPaidCheckoutSession(session);
+			return { status: "fulfilled" };
+		} catch (err) {
+			if ((err as { code?: string })?.code === "P2002") {
+				return { status: "fulfilled" };
+			}
+			throw err;
+		}
 	} catch (err) {
 		console.error("[shop] confirm error:", err);
 		return { status: "error" };
@@ -126,30 +150,30 @@ export type PlanChangeResult = { ok: true } | { ok: false; error: string };
 export async function changePokePlan(
 	targetProductId: string,
 ): Promise<PlanChangeResult> {
+	const t = await getT();
 	const user = await getCurrentUser();
 	if (!user?.stripeCustomerId) {
-		return { ok: false, error: "You don't have an active poke plan." };
+		return { ok: false, error: t("errNoActivePokePlan") };
 	}
 
 	const target = getShopProduct(targetProductId);
-	if (!target) return { ok: false, error: "Invalid target plan." };
+	if (!target) return { ok: false, error: t("errInvalidTargetPlan") };
 	if (
 		target.category !== "pokes" ||
 		!target.recurring?.priceId ||
 		!PRODUCT_GRANTS[targetProductId]
 	) {
-		return { ok: false, error: "Invalid target plan." };
+		return { ok: false, error: t("errInvalidTargetPlan") };
 	}
 
 	try {
 		const stripe = getStripe();
 		const sub = await findActivePokeSubscription(user.stripeCustomerId);
-		if (!sub)
-			return { ok: false, error: "You don't have an active poke plan." };
+		if (!sub) return { ok: false, error: t("errNoActivePokePlan") };
 
 		const currentProductId = sub.metadata?.productId;
 		if (currentProductId === targetProductId) {
-			return { ok: false, error: "That's already your current plan." };
+			return { ok: false, error: t("errAlreadyCurrentPlan") };
 		}
 
 		const currentPokes = currentProductId
@@ -161,7 +185,7 @@ export async function changePokePlan(
 
 		const itemId = sub.items.data[0]?.id;
 		if (!itemId) {
-			return { ok: false, error: "Could not read your subscription." };
+			return { ok: false, error: t("errCouldNotReadSubscription") };
 		}
 
 		const updated = await stripe.subscriptions.update(sub.id, {
@@ -204,6 +228,6 @@ export async function changePokePlan(
 		return { ok: true };
 	} catch (err) {
 		console.error("[shop] change plan error:", err);
-		return { ok: false, error: "Could not change your plan. Try again." };
+		return { ok: false, error: t("errCouldNotChangePlan") };
 	}
 }

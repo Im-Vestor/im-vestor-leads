@@ -17,7 +17,10 @@ export function getStripe(): Stripe {
 	return stripe;
 }
 
-export type ShopCategory = "subscription" | "pokes" | "leads";
+export type ShopCategory = "subscription" | "pokes" | "leads" | "hypertrain";
+
+// Stripe product: prod_UvrFOwezlTyHT3
+export const HYPERTRAIN_DAYS = 7;
 
 export type ShopProduct = {
 	id: string;
@@ -28,6 +31,9 @@ export type ShopProduct = {
 	mode: "payment" | "subscription";
 	category: ShopCategory;
 	pokes?: number;
+	badge?: string;
+	priceNote?: string;
+	features?: string[];
 	recurring?: {
 		priceLabel: string;
 		priceId: string | undefined;
@@ -43,6 +49,12 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_SUBSCRIPTION_MONTHLY,
 		mode: "subscription",
 		category: "subscription",
+		features: [
+			"Full marketplace access",
+			"Priority support",
+			"Analytics dashboard",
+			"Cancel anytime",
+		],
 	},
 	{
 		id: "subscription-annual",
@@ -52,6 +64,15 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_SUBSCRIPTION_ANNUAL,
 		mode: "subscription",
 		category: "subscription",
+		badge: "Best value",
+		priceNote: "≈ €14.99 / month",
+		features: [
+			"Full marketplace access",
+			"Priority support",
+			"Analytics dashboard",
+			"2 months free",
+			"Early access to new features",
+		],
 	},
 	{
 		id: "poke-pack-3",
@@ -62,6 +83,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		mode: "payment",
 		category: "pokes",
 		pokes: 3,
+		features: ["3 introduction pokes", "Reach founders & investors directly"],
 		recurring: {
 			priceLabel: "€29.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_3_MONTHLY,
@@ -76,6 +98,11 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		mode: "payment",
 		category: "pokes",
 		pokes: 5,
+		features: [
+			"5 introduction pokes",
+			"Reach founders & investors directly",
+			"Cheaper per poke than the 3-pack",
+		],
 		recurring: {
 			priceLabel: "€39.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_5_MONTHLY,
@@ -90,6 +117,12 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		mode: "payment",
 		category: "pokes",
 		pokes: 10,
+		badge: "Best value",
+		features: [
+			"10 introduction pokes",
+			"Reach founders & investors directly",
+			"Lowest price per poke",
+		],
 		recurring: {
 			priceLabel: "€49.99 / month",
 			priceId: env.STRIPE_PRICE_POKE_PACK_10_MONTHLY,
@@ -103,6 +136,28 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		priceId: env.STRIPE_PRICE_LEAD_CREDIT,
 		mode: "payment",
 		category: "leads",
+		features: [
+			"Unlock 1 full lead profile",
+			"Media, documents & full details",
+			"Direct chat with the founder",
+			"Permanent — access never expires",
+		],
+	},
+	{
+		id: "hypertrain-ticket",
+		name: "Hypertrain Ticket",
+		description:
+			"Feature a project or your investor profile on the dashboard Hyper Train carousel for 7 days.",
+		priceLabel: "€30.00",
+		priceId: env.STRIPE_PRICE_HYPERTRAIN_TICKET,
+		mode: "payment",
+		category: "hypertrain",
+		features: [
+			"7 days on the dashboard Hyper Train",
+			"Entrepreneurs: promote any published project",
+			"Investors: promote your profile",
+			"Buy as many tickets as you need",
+		],
 	},
 ];
 
@@ -115,6 +170,7 @@ export type SubscriptionPlan = "monthly" | "annual";
 export type ProductGrant = {
 	pokes?: number;
 	leadCredits?: number;
+	hypertrainTickets?: number;
 	plan?: SubscriptionPlan;
 };
 
@@ -125,6 +181,7 @@ export const PRODUCT_GRANTS: Record<string, ProductGrant> = {
 	"poke-pack-5": { pokes: 5 },
 	"poke-pack-10": { pokes: 10 },
 	"lead-credit": { leadCredits: 1 },
+	"hypertrain-ticket": { hypertrainTickets: 1 },
 };
 
 export function isPokeGrant(grant: ProductGrant | undefined): boolean {

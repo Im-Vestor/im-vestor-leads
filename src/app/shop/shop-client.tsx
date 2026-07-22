@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon, StarIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -23,6 +25,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useTranslation } from "@/hooks/use-translation";
 import type { ShopCategory, ShopProduct } from "@/lib/stripe";
 import {
 	changePokePlan,
@@ -30,33 +33,28 @@ import {
 	createCheckoutSession,
 } from "./actions";
 
-async function confirmAndToast(sessionId: string) {
+async function confirmAndToast(
+	sessionId: string,
+	t: ReturnType<typeof useTranslation>,
+) {
 	for (let attempt = 0; attempt < 4; attempt++) {
 		const res = await confirmCheckout(sessionId);
 		if (res.status === "fulfilled") {
-			toast.success("Payment confirmed — your balance is updated.");
+			toast.success(t("shopToastPaymentConfirmed"));
 			return;
 		}
 		if (res.status === "unpaid") {
-			toast.error("Payment didn't go through. You weren't charged.");
+			toast.error(t("shopToastPaymentFailed"));
 			return;
 		}
 		if (res.status === "error") {
-			toast.error(
-				"Couldn't confirm your purchase — contact support if charged.",
-			);
+			toast.error(t("shopToastConfirmError"));
 			return;
 		}
 		await new Promise((r) => setTimeout(r, 1500));
 	}
-	toast.info("Payment received — updating your balance, refresh in a moment.");
+	toast.info(t("shopToastPaymentReceived"));
 }
-
-const SECTIONS: { category: ShopCategory; title: string }[] = [
-	{ category: "subscription", title: "Memberships" },
-	{ category: "pokes", title: "Pokes" },
-	{ category: "leads", title: "Lead Credits" },
-];
 
 export function ShopClient({
 	products,
@@ -67,10 +65,48 @@ export function ShopClient({
 	activePokePlan: string | null;
 	pokeCycleHigh: number;
 }) {
+	const t = useTranslation();
 	const [loadingId, setLoadingId] = useState<string | null>(null);
 	const [pokesRecurring, setPokesRecurring] = useState(activePokePlan !== null);
 	const [switchTarget, setSwitchTarget] = useState<ShopProduct | null>(null);
 	const router = useRouter();
+
+	const sections: {
+		category: ShopCategory;
+		number: string;
+		eyebrow: string;
+		headline: string;
+		description: string;
+	}[] = [
+		{
+			category: "subscription",
+			number: "01",
+			eyebrow: t("shopSectionMembershipsEyebrow"),
+			headline: t("shopSectionMembershipsHeadline"),
+			description: t("shopSectionMembershipsDescription"),
+		},
+		{
+			category: "pokes",
+			number: "02",
+			eyebrow: t("shopSectionPokesEyebrow"),
+			headline: t("shopSectionPokesHeadline"),
+			description: t("shopSectionPokesDescription"),
+		},
+		{
+			category: "leads",
+			number: "03",
+			eyebrow: t("shopSectionLeadsEyebrow"),
+			headline: t("shopSectionLeadsHeadline"),
+			description: t("shopSectionLeadsDescription"),
+		},
+		{
+			category: "hypertrain",
+			number: "04",
+			eyebrow: t("shopSectionHypertrainEyebrow"),
+			headline: t("shopSectionHypertrainHeadline"),
+			description: t("shopSectionHypertrainDescription"),
+		},
+	];
 
 	const currentPokes =
 		products.find((p) => p.id === activePokePlan)?.pokes ?? 0;
@@ -89,11 +125,11 @@ export function ShopClient({
 		if (!status) return;
 		window.history.replaceState(null, "", "/shop");
 		if (status === "cancelled") {
-			toast.info("Checkout cancelled.");
+			toast.info(t("shopToastCheckoutCancelled"));
 		} else if (status === "success" && sessionId) {
-			void confirmAndToast(sessionId);
+			void confirmAndToast(sessionId, t);
 		}
-	}, []);
+	}, [t]);
 
 	async function buy(product: ShopProduct, recurring: boolean) {
 		setLoadingId(product.id);
@@ -105,7 +141,7 @@ export function ShopClient({
 			}
 			toast.error(result.error);
 		} catch {
-			toast.error("Something went wrong. Try again.");
+			toast.error(t("shopToastGenericError"));
 		} finally {
 			setLoadingId(null);
 		}
@@ -116,13 +152,13 @@ export function ShopClient({
 		try {
 			const result = await changePokePlan(productId);
 			if (result.ok) {
-				toast.success("Plan updated.");
+				toast.success(t("shopToastPlanUpdated"));
 				router.refresh();
 				return;
 			}
 			toast.error(result.error);
 		} catch {
-			toast.error("Something went wrong. Try again.");
+			toast.error(t("shopToastGenericError"));
 		} finally {
 			setLoadingId(null);
 		}
@@ -130,18 +166,31 @@ export function ShopClient({
 
 	return (
 		<>
-			<div className="space-y-10">
-				{SECTIONS.map((section) => {
+			<div className="space-y-14">
+				{sections.map((section, index) => {
 					const items = products.filter((p) => p.category === section.category);
 					if (items.length === 0) return null;
 					const hasRecurring = items.some((p) => p.recurring);
 					const recurring = hasRecurring && pokesRecurring;
+					const cardCols =
+						items.length >= 3
+							? "sm:grid-cols-2 xl:grid-cols-3"
+							: "sm:grid-cols-2";
 					return (
-						<section key={section.category} className="space-y-4">
-							<div className="flex flex-wrap items-center justify-between gap-3">
-								<h2 className="font-semibold text-muted-foreground text-sm uppercase tracking-wider">
-									{section.title}
+						<section
+							key={section.category}
+							className={`grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:gap-12 ${
+								index > 0 ? "border-t pt-14" : ""
+							}`}
+						>
+							<div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+								<p className="font-medium text-muted-foreground text-sm tracking-widest">
+									{section.number} — {section.eyebrow.toUpperCase()}
+								</p>
+								<h2 className="font-bold text-3xl tracking-tight md:text-4xl">
+									{section.headline}
 								</h2>
+								<p className="text-muted-foreground">{section.description}</p>
 								{hasRecurring && (
 									<div className="inline-flex rounded-md border p-0.5 text-sm">
 										<button
@@ -149,19 +198,19 @@ export function ShopClient({
 											onClick={() => setPokesRecurring(false)}
 											className={`rounded px-3 py-1 ${pokesRecurring ? "text-muted-foreground" : "bg-secondary"}`}
 										>
-											One-time
+											{t("shopBillingOneTime")}
 										</button>
 										<button
 											type="button"
 											onClick={() => setPokesRecurring(true)}
 											className={`rounded px-3 py-1 ${pokesRecurring ? "bg-secondary" : "text-muted-foreground"}`}
 										>
-											Monthly
+											{t("shopBillingMonthly")}
 										</button>
 									</div>
 								)}
 							</div>
-							<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+							<div className={`grid gap-4 ${cardCols}`}>
 								{items.map((product) => (
 									<ProductCard
 										key={product.id}
@@ -188,39 +237,39 @@ export function ShopClient({
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							{isUpgrade ? "Upgrade" : "Downgrade"} to {switchTarget?.name}?
+							{isUpgrade
+								? t("shopDialogUpgradeTo")
+								: t("shopDialogDowngradeTo")}{" "}
+							{switchTarget?.name}?
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{isRevert
-								? "You already received this plan's pokes this billing cycle, so there's no charge and no new pokes now."
+								? t("shopDialogRevertDesc")
 								: isUpgrade
-									? "You'll be charged only the prorated difference now, using the payment method from your current plan."
-									: "This takes effect on your next billing cycle — no charge now, and you keep your current plan until then."}
+									? t("shopDialogUpgradeDesc")
+									: t("shopDialogDowngradeDesc")}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 
 					<ul className="space-y-1.5 text-muted-foreground text-sm">
 						{isRevert ? (
-							<li>
-								Balance: full pokes resume at your next renewal — nothing added
-								now.
-							</li>
+							<li>{t("shopDialogRevertBalance")}</li>
 						) : isUpgrade ? (
 							<li>
-								Balance:{" "}
+								{t("shopDialogBalanceLabel")}{" "}
 								<strong className="text-foreground">
-									+{creditDelta} pokes
+									+{creditDelta} {t("shopPokesUnit")}
 								</strong>{" "}
-								added right away.
+								{t("shopDialogAddedRightAway")}
 							</li>
 						) : (
-							<li>Your pokes: we won't remove any you've already received.</li>
+							<li>{t("shopDialogDowngradeBalance")}</li>
 						)}
-						<li>Payment method: change it anytime via Manage billing.</li>
+						<li>{t("shopDialogPaymentMethod")}</li>
 					</ul>
 
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>{t("commonCancel")}</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
 								if (switchTarget) void switchPlan(switchTarget.id);
@@ -228,10 +277,10 @@ export function ShopClient({
 							}}
 						>
 							{isRevert
-								? "Confirm switch"
+								? t("shopConfirmSwitch")
 								: isUpgrade
-									? "Upgrade"
-									: "Confirm downgrade"}
+									? t("shopUpgrade")
+									: t("shopConfirmDowngrade")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -255,6 +304,7 @@ function ProductCard({
 	onBuy: (product: ShopProduct, recurring: boolean) => void;
 	onSwitch: (product: ShopProduct) => void;
 }) {
+	const t = useTranslation();
 	const activePriceId = recurring
 		? product.recurring?.priceId
 		: product.priceId;
@@ -271,16 +321,16 @@ function ProductCard({
 		isPokeMonthly && !!activePokePlan && activePokePlan !== product.id;
 
 	const label = unavailable
-		? "Coming soon"
+		? t("shopLabelComingSoon")
 		: isLoading
-			? "Processing…"
+			? t("shopLabelProcessing")
 			: isCurrentPlan
-				? "Current plan"
+				? t("shopLabelCurrentPlan")
 				: canSwitch
-					? "Switch to this plan"
+					? t("shopLabelSwitchPlan")
 					: isSubscription
-						? "Subscribe"
-						: "Buy now";
+						? t("shopLabelSubscribe")
+						: t("shopLabelBuyNow");
 
 	return (
 		<SpotlightCard
@@ -291,15 +341,41 @@ function ProductCard({
 				className={`flex w-full flex-col ${isCurrentPlan ? "border-[#E5CD82]/40" : ""}`}
 			>
 				<CardHeader>
-					<CardTitle>{product.name}</CardTitle>
+					<div className="flex items-start justify-between gap-2">
+						<CardTitle>{product.name}</CardTitle>
+						{product.badge ? (
+							<Badge variant="secondary" className="shrink-0">
+								<StarIcon className="size-3" />
+								{product.badge}
+							</Badge>
+						) : null}
+					</div>
 					<CardDescription>{product.description}</CardDescription>
 				</CardHeader>
-				<CardContent className="flex-grow">
-					<p className="font-bold text-2xl tracking-tight">{priceLabel}</p>
+				<CardContent className="flex-grow space-y-4">
+					<div>
+						<p className="font-bold text-2xl tracking-tight">{priceLabel}</p>
+						{product.priceNote ? (
+							<p className="text-muted-foreground text-sm">
+								{product.priceNote}
+							</p>
+						) : null}
+					</div>
+					{product.features?.length ? (
+						<ul className="space-y-2 text-sm">
+							{product.features.map((feature) => (
+								<li key={feature} className="flex items-start gap-2">
+									<CheckIcon className="mt-0.5 size-4 shrink-0 text-[#E5CD82]" />
+									<span>{feature}</span>
+								</li>
+							))}
+						</ul>
+					) : null}
 				</CardContent>
 				<CardFooter>
 					<Button
 						className="w-full"
+						size="lg"
 						variant={canSwitch ? "outline" : "default"}
 						disabled={unavailable || isLoading || isCurrentPlan}
 						onClick={() =>
