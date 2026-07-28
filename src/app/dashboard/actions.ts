@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { notifyLeadUnlocked } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/user";
 import { getT } from "@/utils/translations/server";
@@ -46,6 +47,8 @@ export async function unlockProject(projectId: string): Promise<UnlockResult> {
 		}
 		return { ok: false, error: t("errCouldNotUnlock") };
 	}
+
+	notifyLeadUnlocked({ projectId, investorId: user.id });
 
 	revalidatePath("/dashboard");
 	revalidatePath(`/projects/${projectId}`);

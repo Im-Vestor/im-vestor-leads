@@ -2,32 +2,13 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { canMessageDirectly } from "@/lib/messages/contact";
+import { findOrCreateDirectConversation } from "@/lib/messages/conversation";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateSupportUser } from "@/lib/support";
 import { getT } from "@/utils/translations/server";
 
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
-
-async function findOrCreateDirectConversation(aId: string, bId: string) {
-	return prisma.$transaction(async (tx) => {
-		const existing = await tx.conversation.findFirst({
-			where: {
-				AND: [
-					{ participants: { some: { id: aId } } },
-					{ participants: { some: { id: bId } } },
-				],
-			},
-			select: { id: true, participants: { select: { id: true } } },
-		});
-		if (existing && existing.participants.length === 2) return existing.id;
-
-		const created = await tx.conversation.create({
-			data: { participants: { connect: [{ id: aId }, { id: bId }] } },
-			select: { id: true },
-		});
-		return created.id;
-	});
-}
 
 const startSchema = z.object({
 	targetUserId: z.string().min(1),
@@ -45,7 +26,7 @@ export async function startConversationFromProfile(
 
 	const me = await prisma.user.findUnique({
 		where: { clerkId },
-		select: { id: true },
+		select: { id: true, role: true },
 	});
 	if (!me) return { ok: false, error: t("errUserNotFound") };
 
@@ -55,9 +36,17 @@ export async function startConversationFromProfile(
 
 	const target = await prisma.user.findUnique({
 		where: { id: parsed.data.targetUserId },
-		select: { id: true },
+		select: { id: true, role: true },
 	});
 	if (!target) return { ok: false, error: t("errRecipientNotFound") };
+
+	// Staff and support are reachable without spending anything. Between
+	// members, a profile alone is not enough: one side has to have accepted the
+	// other's poke before the thread can exist.
+	const staff = me.role === "ADMIN" || target.role === "ADMIN";
+	if (!staff && !(await canMessageDirectly(me.id, target.id))) {
+		return { ok: false, error: t("errPokeAcceptanceRequired") };
+	}
 
 	const conversationId = await findOrCreateDirectConversation(me.id, target.id);
 

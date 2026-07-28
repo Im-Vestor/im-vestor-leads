@@ -1,12 +1,14 @@
 import { LifeBuoyIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/messages/display-name";
+import type { PresenceStatus } from "@/lib/messages/presence";
 import { cn } from "@/lib/utils";
+import { PresenceDot } from "./presence-dot";
 
 type UserAvatarProps = {
 	name: string;
 	imageUrl?: string | null;
-	isOnline?: boolean;
+	presence?: PresenceStatus;
 	support?: boolean;
 	size?: "sm" | "md" | "lg";
 	className?: string;
@@ -27,7 +29,7 @@ const iconClass = {
 export function UserAvatar({
 	name,
 	imageUrl,
-	isOnline,
+	presence,
 	support,
 	size = "md",
 	className,
@@ -46,8 +48,12 @@ export function UserAvatar({
 					</>
 				)}
 			</Avatar>
-			{isOnline ? (
-				<span className="absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-card bg-emerald-500" />
+			{presence && !support ? (
+				<PresenceDot
+					status={presence}
+					size={size}
+					className="absolute right-0 bottom-0"
+				/>
 			) : null}
 		</div>
 	);

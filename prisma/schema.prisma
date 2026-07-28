@@ -17,6 +17,23 @@ enum UserRole {
 
 enum NotificationType {
   MESSAGE_RECEIVED
+  // Written by the older poke flow. The migrations that introduced them are no
+  // longer in `prisma/migrations`, but the values and rows using them still
+  // exist, and Prisma must know every value the column can hold to read it.
+  POKE_RECEIVED
+  POKE_ACCEPTED
+  POKE_REJECTED
+  SUPPORT_REPLY
+  WELCOME
+  REFERRAL_JOINED
+  PROJECT_PUBLISHED
+  LEAD_UNLOCKED
+  HYPERTRAIN_ACTIVATED
+  PURCHASE_COMPLETED
+  SUBSCRIPTION_STARTED
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_CANCELLED
+  PAYMENT_FAILED
 }
 
 enum Sector {
@@ -45,6 +62,13 @@ enum ProjectStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum PokeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
 enum Currency {
@@ -84,9 +108,14 @@ model User {
   pokeSubCreditedAt  DateTime?
   pokeCycleHigh      Int       @default(0)
 
-  lastSeenAt DateTime?
+  lastSeenAt   DateTime?
+  lastActiveAt DateTime?
+
+  welcomeEmailSentAt DateTime?
 
   sentMessages     Message[]       @relation("SentMessages")
+  sentPokes        Poke[]          @relation("SentPokes")
+  receivedPokes    Poke[]          @relation("ReceivedPokes")
   conversations    Conversation[]  @relation("ConversationParticipants")
   notifications    Notification[]  @relation("UserNotifications")
   projects         Project[]       @relation("EntrepreneurProjects")
@@ -125,6 +154,34 @@ model Message {
   @@map("messages")
 }
 
+// Introduction request between two members: the sender spends a poke, the
+// receiver accepts or rejects it, and accepting is what opens the conversation.
+// NOTE: the database also holds a partial unique index, `pokes_pending_unique`
+// on (senderId, receiverId) WHERE status = 'PENDING'. Prisma cannot express
+// partial indexes, so it lives only in the migration SQL — it is what keeps a
+// member from stacking several open requests on the same person.
+model Poke {
+  id          String     @id @default(cuid())
+  senderId    String
+  receiverId  String
+  message     String
+  status      PokeStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  expiresAt   DateTime
+  respondedAt DateTime?
+
+  sender        User           @relation("SentPokes", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver      User           @relation("ReceivedPokes", fields: [receiverId], references: [id], onDelete: Cascade)
+  notifications Notification[] @relation("PokeNotifications")
+
+  @@index([senderId, receiverId, status])
+  @@index([receiverId, senderId, status])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+  @@index([status, expiresAt])
+  @@map("pokes")
+}
+
 model Notification {
   id        String           @id @default(cuid())
   createdAt DateTime         @default(now())
@@ -132,11 +189,21 @@ model Notification {
   read      Boolean          @default(false)
   userId    String
   senderId  String?
+  // Dynamic detail only (sender name, project name, message preview). The title
+  // comes from `type` and is translated client-side.
   message   String?
+  // In-app destination for the row, e.g. "/messages" or "/projects/<id>".
+  link      String?
+  // Set on the POKE_* rows. It is what lets the bell answer a poke in place:
+  // without it the row could not tell which request the buttons act on.
+  pokeId    String?
   user      User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  poke      Poke?            @relation("PokeNotifications", fields: [pokeId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([pokeId])
   @@map("notifications")
 }
 

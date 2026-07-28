@@ -2,7 +2,6 @@
 
 import { useClerk, useUser } from "@clerk/nextjs";
 import {
-	BellIcon,
 	ChevronDownIcon,
 	GlobeIcon,
 	LayoutDashboardIcon,
@@ -22,6 +21,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { getMyRole, getMyUserId } from "@/app/messages/notifications.actions";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import SpotlightCard from "@/components/SpotlightCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ import {
 	useLanguage,
 } from "@/contexts/LanguageContext";
 import type { UserRole } from "@/generated/prisma/enums";
+import { usePresenceHeartbeat } from "@/hooks/use-presence-heartbeat";
 import { useTranslation } from "@/hooks/use-translation";
 import { useUnreadCount } from "@/hooks/use-unread-count";
 import { useUnreadSupportCount } from "@/hooks/use-unread-support-count";
@@ -62,7 +63,6 @@ import type { TranslationKey } from "@/utils/translations";
 type NavLink = { href?: string; labelKey: TranslationKey; icon: LucideIcon };
 
 const NAV_TAIL = [
-	{ labelKey: "navInbox", icon: BellIcon },
 	{ href: "/messages", labelKey: "navChats", icon: MessageSquareIcon },
 	{ href: "/shop", labelKey: "navShop", icon: ShoppingBagIcon },
 ] satisfies NavLink[];
@@ -72,6 +72,7 @@ type NavData = {
 	isAdmin: boolean;
 	count: number;
 	supportCount: number;
+	userId: string | null;
 };
 
 function useNavData(): NavData {
@@ -122,11 +123,14 @@ function useNavData(): NavData {
 		...NAV_TAIL,
 	];
 
-	return { links, isAdmin, count, supportCount };
+	return { links, isAdmin, count, supportCount, userId };
 }
 
 export const Header = () => {
 	const { isSignedIn, isLoaded } = useUser();
+
+	// Presence is app-wide, not just on /messages.
+	usePresenceHeartbeat(isSignedIn === true);
 
 	return (
 		<header className="mx-auto mb-8 w-full max-w-content md:mb-12">
@@ -169,7 +173,8 @@ const SignedInNav = () => {
 	return (
 		<>
 			<DesktopNav data={data} />
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-1 md:gap-2">
+				<NotificationBell userId={data.userId} />
 				<div className="hidden md:flex">
 					<UserMenu />
 				</div>

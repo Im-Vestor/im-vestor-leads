@@ -1,6 +1,11 @@
 "use client";
 
-import { LayoutDashboardIcon, LifeBuoyIcon, ShieldIcon } from "lucide-react";
+import {
+	LayoutDashboardIcon,
+	LifeBuoyIcon,
+	ShieldIcon,
+	UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +15,7 @@ import { useUnreadSupportCount } from "@/hooks/use-unread-support-count";
 
 const LINKS = [
 	{ href: "/admin", labelKey: "adminNavDashboard", icon: LayoutDashboardIcon },
+	{ href: "/admin/users", labelKey: "adminNavUsers", icon: UsersIcon },
 	{
 		href: "/admin/support",
 		labelKey: "adminNavSupportInbox",

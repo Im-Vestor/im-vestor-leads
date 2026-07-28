@@ -8,13 +8,14 @@ import {
 	SearchIcon,
 	StarIcon,
 	UnlockIcon,
-	ZapIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { startConversationForLead } from "@/app/messages/start.actions";
+import { PokeBalance } from "@/components/pokes/poke-balance";
+import { PokeButton } from "@/components/pokes/poke-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,7 @@ export type LeadProject = {
 	country: string | null;
 	date: string;
 	unlocked: boolean;
+	poked: boolean;
 	cover: { url: string; alt: string } | null;
 };
 
@@ -112,10 +114,12 @@ function ProjectCard({
 	project,
 	canUnlock,
 	leadCredits,
+	pokes,
 }: {
 	project: LeadProject;
 	canUnlock: boolean;
 	leadCredits: number;
+	pokes: number;
 }) {
 	const t = useTranslation();
 	const router = useRouter();
@@ -207,9 +211,11 @@ function ProjectCard({
 						</>
 					) : (
 						<>
-							<Button variant="outline" size="sm">
-								<ZapIcon /> {t("dashPoke")}
-							</Button>
+							<PokeButton
+								projectId={project.id}
+								pokes={pokes}
+								alreadyPoked={project.poked}
+							/>
 							{canUnlock && (
 								<Button
 									size="sm"
@@ -236,6 +242,7 @@ export function DashboardClient({
 	filters,
 	canUnlock,
 	leadCredits,
+	pokes,
 }: {
 	areas: { id: string; name: string }[];
 	valueFilters: { key: string; label: string }[];
@@ -244,6 +251,7 @@ export function DashboardClient({
 	filters: { sector: string; country: string; value: string };
 	canUnlock: boolean;
 	leadCredits: number;
+	pokes: number;
 }) {
 	const t = useTranslation();
 	const router = useRouter();
@@ -317,9 +325,12 @@ export function DashboardClient({
 
 			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
 				<div>
-					<h1 className="font-semibold text-2xl tracking-tight">
-						{t("dashDiscoverLeads")}
-					</h1>
+					<div className="flex items-center gap-3">
+						<h1 className="font-semibold text-2xl tracking-tight">
+							{t("dashDiscoverLeads")}
+						</h1>
+						<PokeBalance pokes={pokes} />
+					</div>
 					<p className="text-muted-foreground text-sm">{t("dashSubtitle")}</p>
 				</div>
 				<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
@@ -379,6 +390,7 @@ export function DashboardClient({
 							project={p}
 							canUnlock={canUnlock}
 							leadCredits={leadCredits}
+							pokes={pokes}
 						/>
 					))}
 				</div>

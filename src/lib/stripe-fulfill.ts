@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { notifyPurchase } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { getStripe, PRODUCT_GRANTS } from "@/lib/stripe";
 
@@ -20,7 +21,7 @@ export async function fulfillPaidCheckoutSession(
 	const productId = session.metadata?.productId;
 	const grant = productId ? PRODUCT_GRANTS[productId] : undefined;
 
-	if (!userId || !grant) {
+	if (!userId || !productId || !grant) {
 		console.warn("[stripe] checkout without known user/product", {
 			userId,
 			productId,
@@ -57,6 +58,13 @@ export async function fulfillPaidCheckoutSession(
 				},
 			}),
 		]);
+
+		notifyPurchase({
+			userId,
+			productId,
+			recurring: true,
+			pokesGranted: onCooldown ? 0 : (grant.pokes ?? 0),
+		});
 		return;
 	}
 
@@ -92,4 +100,6 @@ export async function fulfillPaidCheckoutSession(
 			},
 		}),
 	]);
+
+	notifyPurchase({ userId, productId, quantity });
 }

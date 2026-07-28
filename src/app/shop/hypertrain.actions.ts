@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { notifyHypertrainActivated } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { HYPERTRAIN_DAYS } from "@/lib/stripe";
 import { getCurrentUser } from "@/lib/user";
@@ -51,10 +52,11 @@ export async function applyHypertrainToProject(
 	if (!(await spendTicket(user.id))) {
 		return { ok: false, error: t("errHyperNoTickets") };
 	}
+	const until = boostUntil();
 	try {
 		await prisma.project.update({
 			where: { id: projectId },
-			data: { hypertrainUntil: boostUntil() },
+			data: { hypertrainUntil: until },
 		});
 	} catch {
 		await prisma.user.update({
@@ -63,6 +65,14 @@ export async function applyHypertrainToProject(
 		});
 		return { ok: false, error: t("errHyperFailed") };
 	}
+
+	notifyHypertrainActivated({
+		userId: user.id,
+		target: "project",
+		projectId,
+		until,
+		days: HYPERTRAIN_DAYS,
+	});
 
 	revalidatePath("/dashboard");
 	revalidatePath(`/projects/${projectId}`);
@@ -84,10 +94,11 @@ export async function applyHypertrainToProfile(): Promise<HypertrainResult> {
 	if (!(await spendTicket(user.id))) {
 		return { ok: false, error: t("errHyperNoTickets") };
 	}
+	const until = boostUntil();
 	try {
 		await prisma.user.update({
 			where: { id: user.id },
-			data: { hypertrainUntil: boostUntil() },
+			data: { hypertrainUntil: until },
 		});
 	} catch {
 		await prisma.user.update({
@@ -96,6 +107,13 @@ export async function applyHypertrainToProfile(): Promise<HypertrainResult> {
 		});
 		return { ok: false, error: t("errHyperFailed") };
 	}
+
+	notifyHypertrainActivated({
+		userId: user.id,
+		target: "profile",
+		until,
+		days: HYPERTRAIN_DAYS,
+	});
 
 	revalidatePath("/dashboard");
 	revalidatePath("/shop");

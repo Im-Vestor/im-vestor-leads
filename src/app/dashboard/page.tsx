@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import { openContactIds } from "@/lib/messages/contact";
 import { getDisplayName } from "@/lib/messages/display-name";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/user";
@@ -29,9 +30,23 @@ type ProjectWithRefs = Prisma.ProjectGetPayload<{
 	};
 }>;
 
+/**
+ * Receivers still owing this user an answer. Re-poking them is a dead end, so
+ * the button shows "poked" instead. Members already reachable come from
+ * {@link openContactIds}, which counts acceptances in either direction.
+ */
+async function pendingPokeReceiverIds(senderId: string): Promise<Set<string>> {
+	const rows = await prisma.poke.findMany({
+		where: { senderId, status: "PENDING" },
+		select: { receiverId: true },
+	});
+	return new Set(rows.map((r) => r.receiverId));
+}
+
 function toLead(
 	project: ProjectWithRefs,
 	unlocked: boolean,
+	poked: boolean,
 	t: Awaited<ReturnType<typeof getT>>,
 ): LeadProject {
 	const areaNames = project.areas.map((a) => a.name);
@@ -42,6 +57,7 @@ function toLead(
 		country: project.country,
 		date: project.createdAt.toISOString().slice(0, 10),
 		unlocked,
+		poked,
 	};
 
 	if (!unlocked) {
@@ -101,7 +117,7 @@ export default async function DashboardPage({
 		} satisfies Prisma.UserSelect;
 
 		const now = new Date();
-		const [investors, featured] = await Promise.all([
+		const [investors, featured, pendingIds, contactIds] = await Promise.all([
 			prisma.user.findMany({
 				where: investorWhere,
 				orderBy: { createdAt: "desc" },
@@ -114,6 +130,8 @@ export default async function DashboardPage({
 				take: 8,
 				select: investorSelect,
 			}),
+			pendingPokeReceiverIds(me.id),
+			openContactIds(me.id),
 		]);
 
 		const toInvestor = (
@@ -125,6 +143,8 @@ export default async function DashboardPage({
 			capacity: u.investmentCapacity,
 			sectors: u.sectors,
 			date: u.createdAt.toISOString().slice(0, 10),
+			poked: pendingIds.has(u.id),
+			connected: contactIds.has(u.id),
 		});
 
 		return (
@@ -132,6 +152,7 @@ export default async function DashboardPage({
 				featured={featured.map(toInvestor)}
 				investors={investors.map(toInvestor)}
 				filters={{ sector, country, capacity }}
+				pokes={me?.pokes ?? 0}
 			/>
 		);
 	}
@@ -185,26 +206,38 @@ export default async function DashboardPage({
 		}),
 	]);
 
-	const unlockedIds = me
-		? new Set(
-				(
-					await prisma.projectUnlock.findMany({
+	const [unlockedIds, pendingIds, contactIds] = me
+		? await Promise.all([
+				prisma.projectUnlock
+					.findMany({
 						where: { userId: me.id },
 						select: { projectId: true },
 					})
-				).map((u) => u.projectId),
-			)
-		: new Set<string>();
+					.then((rows) => new Set(rows.map((u) => u.projectId))),
+				pendingPokeReceiverIds(me.id),
+				openContactIds(me.id),
+			])
+		: [new Set<string>(), new Set<string>(), new Set<string>()];
+
+	// Waiting on an answer or already connected — either way, poking again
+	// buys nothing.
+	const poked = (founderId: string) =>
+		pendingIds.has(founderId) || contactIds.has(founderId);
 
 	return (
 		<DashboardClient
 			areas={areas}
 			valueFilters={VALUE_FILTERS.map(({ key, label }) => ({ key, label }))}
-			featured={featured.map((p) => toLead(p, unlockedIds.has(p.id), t))}
-			projects={projects.map((p) => toLead(p, unlockedIds.has(p.id), t))}
+			featured={featured.map((p) =>
+				toLead(p, unlockedIds.has(p.id), poked(p.entrepreneurId), t),
+			)}
+			projects={projects.map((p) =>
+				toLead(p, unlockedIds.has(p.id), poked(p.entrepreneurId), t),
+			)}
 			filters={{ sector, country, value }}
 			canUnlock={me?.role === "INVESTOR" || me?.role === "ADMIN"}
 			leadCredits={me?.leadCredits ?? 0}
+			pokes={me?.pokes ?? 0}
 		/>
 	);
 }

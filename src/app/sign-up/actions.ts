@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { notifyWelcome } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { syncNameToClerk } from "@/lib/user";
 import { getT } from "@/utils/translations/server";
@@ -105,6 +106,8 @@ export async function completeSignup(
 	}
 
 	await syncNameToClerk(userId, data.name?.trim() || null);
+
+	notifyWelcome(userId);
 
 	return { ok: true };
 }

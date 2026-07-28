@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { findBannedWord } from "@/lib/messages/banned-words";
+import { notifyNewMessage } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { SUPPORT_EMAIL } from "@/lib/support";
 import { getT } from "@/utils/translations/server";
@@ -230,11 +231,20 @@ export async function sendMessage(
 							senderId: me.id,
 							type: "MESSAGE_RECEIVED" as const,
 							message: preview,
+							link: "/messages",
 						})),
 					}),
 				]
 			: []),
 	]);
+
+	notifyNewMessage({
+		conversationId: conversation.id,
+		messageId: message.id,
+		senderId: me.id,
+		recipientIds: recipients,
+		preview,
+	});
 
 	return { ok: true, data: message };
 }

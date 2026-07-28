@@ -2,21 +2,37 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { type PresenceStatus, resolvePresence } from "@/lib/messages/presence";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/utils/translations/server";
 
-const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
-
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
-export async function heartbeat(): Promise<ActionResult<{ ok: true }>> {
+const heartbeatSchema = z.object({
+	active: z.boolean(),
+});
+
+export async function heartbeat(
+	input: z.input<typeof heartbeatSchema>,
+): Promise<ActionResult<{ ok: true }>> {
 	const t = await getT();
+	const parsed = heartbeatSchema.safeParse(input);
+	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
+
 	const { userId: clerkId } = await auth();
 	if (!clerkId) return { ok: false, error: t("errNotAuthenticated") };
 
-	await prisma.user.update({
+	// `updateMany`, not `update`: the heartbeat runs for every signed-in session,
+	// including one whose Clerk account has no `users` row yet (signed up but
+	// never finished onboarding). `update` throws P2025 there, and presence is
+	// not worth failing over — no row simply means nothing to record.
+	const now = new Date();
+	await prisma.user.updateMany({
 		where: { clerkId },
-		data: { lastSeenAt: new Date() },
+		data: {
+			lastSeenAt: now,
+			...(parsed.data.active ? { lastActiveAt: now } : {}),
+		},
 	});
 	return { ok: true, data: { ok: true } };
 }
@@ -25,9 +41,9 @@ const getStatusesSchema = z.object({
 	userIds: z.array(z.string().min(1)).max(100),
 });
 
-export async function getOnlineStatuses(
+export async function getPresenceStatuses(
 	input: z.input<typeof getStatusesSchema>,
-): Promise<ActionResult<Record<string, boolean>>> {
+): Promise<ActionResult<Record<string, PresenceStatus>>> {
 	const t = await getT();
 	const parsed = getStatusesSchema.safeParse(input);
 	if (!parsed.success) return { ok: false, error: t("errInvalidInput") };
@@ -39,13 +55,13 @@ export async function getOnlineStatuses(
 
 	const users = await prisma.user.findMany({
 		where: { id: { in: parsed.data.userIds } },
-		select: { id: true, lastSeenAt: true },
+		select: { id: true, lastSeenAt: true, lastActiveAt: true },
 	});
 
-	const cutoff = Date.now() - ONLINE_THRESHOLD_MS;
-	const out: Record<string, boolean> = {};
+	const now = Date.now();
+	const out: Record<string, PresenceStatus> = {};
 	for (const u of users) {
-		out[u.id] = u.lastSeenAt ? u.lastSeenAt.getTime() > cutoff : false;
+		out[u.id] = resolvePresence(u.lastSeenAt, u.lastActiveAt, now);
 	}
 	return { ok: true, data: out };
 }

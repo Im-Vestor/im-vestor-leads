@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { banPhrase } from "@/lib/messages/banned-words";
+import { notifyProjectPublished } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { getSupabaseAdmin, PROJECT_MEDIA_BUCKET } from "@/lib/supabase/server";
 import { getT } from "@/utils/translations/server";
@@ -237,6 +238,7 @@ export async function setProjectStatus(
 		});
 		if (parsed.data === "PUBLISHED") {
 			await banPhrase(updated.name, project.entrepreneurId);
+			if (project.status !== "PUBLISHED") notifyProjectPublished(id);
 		}
 		revalidateProjectPaths(id);
 		return { ok: true, id };

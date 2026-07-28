@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "@/hooks/use-translation";
 import { getDisplayName } from "@/lib/messages/display-name";
+import type { PresenceStatus } from "@/lib/messages/presence";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "./user-avatar";
 
@@ -16,14 +17,14 @@ type Props = {
 	conversations: ConversationListItem[] | null;
 	selectedId: string | null;
 	onSelect: (id: string) => void;
-	onlineStatuses: Record<string, boolean>;
+	presenceStatuses: Record<string, PresenceStatus>;
 };
 
 export function ConversationList({
 	conversations,
 	selectedId,
 	onSelect,
-	onlineStatuses,
+	presenceStatuses,
 }: Props) {
 	const t = useTranslation();
 	const [search, setSearch] = useState("");
@@ -66,7 +67,9 @@ export function ConversationList({
 						{filtered.map((c) => {
 							const name = getDisplayName(c.other);
 							const isSelected = c.id === selectedId;
-							const isOnline = c.other ? !!onlineStatuses[c.other.id] : false;
+							const presence = c.other
+								? (presenceStatuses[c.other.id] ?? "offline")
+								: undefined;
 							const hasUnread = c.unreadCount > 0;
 							return (
 								<li key={c.id}>
@@ -87,7 +90,7 @@ export function ConversationList({
 									>
 										<UserAvatar
 											name={name}
-											isOnline={isOnline}
+											presence={presence}
 											support={c.isSupport}
 											size="md"
 										/>

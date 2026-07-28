@@ -5,6 +5,8 @@ import { SearchIcon, StarIcon, UsersIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { StartMessageButton } from "@/components/messages/start-message-button";
+import { PokeBalance } from "@/components/pokes/poke-balance";
+import { PokeButton } from "@/components/pokes/poke-button";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -50,6 +52,10 @@ export type InvestorLead = {
 	capacity: InvestmentRange | null;
 	sectors: Sector[];
 	date: string;
+	/** A poke is out, waiting for this investor's answer. */
+	poked: boolean;
+	/** They accepted — the thread is open, so messaging replaces poking. */
+	connected: boolean;
 };
 
 function InvestorAvatar({
@@ -111,7 +117,13 @@ function FeaturedInvestorCard({ investor }: { investor: InvestorLead }) {
 	);
 }
 
-function InvestorCard({ investor }: { investor: InvestorLead }) {
+function InvestorCard({
+	investor,
+	pokes,
+}: {
+	investor: InvestorLead;
+	pokes: number;
+}) {
 	const t = useTranslation();
 	return (
 		<Card>
@@ -126,11 +138,23 @@ function InvestorCard({ investor }: { investor: InvestorLead }) {
 			</CardHeader>
 			<CardFooter className="mt-auto flex-wrap justify-between gap-x-4 gap-y-3">
 				<span className="text-muted-foreground text-xs">{investor.date}</span>
-				<StartMessageButton
-					targetUserId={investor.id}
-					variant="outline"
-					label={t("dashMessage")}
-				/>
+				{/* A poke is the only way in: messaging appears once they accept it. */}
+				<div className="flex items-center gap-2">
+					{investor.connected ? (
+						<StartMessageButton
+							targetUserId={investor.id}
+							variant="outline"
+							size="sm"
+							label={t("dashMessage")}
+						/>
+					) : (
+						<PokeButton
+							targetUserId={investor.id}
+							pokes={pokes}
+							alreadyPoked={investor.poked}
+						/>
+					)}
+				</div>
 			</CardFooter>
 		</Card>
 	);
@@ -140,10 +164,12 @@ export function InvestorsDashboardClient({
 	featured,
 	investors,
 	filters,
+	pokes,
 }: {
 	featured: InvestorLead[];
 	investors: InvestorLead[];
 	filters: { sector: string; country: string; capacity: string };
+	pokes: number;
 }) {
 	const t = useTranslation();
 	const router = useRouter();
@@ -219,9 +245,12 @@ export function InvestorsDashboardClient({
 
 			<div className="mb-6 flex flex-wrap items-end justify-between gap-4">
 				<div>
-					<h1 className="font-semibold text-2xl tracking-tight">
-						{t("dashDiscoverInvestors")}
-					</h1>
+					<div className="flex items-center gap-3">
+						<h1 className="font-semibold text-2xl tracking-tight">
+							{t("dashDiscoverInvestors")}
+						</h1>
+						<PokeBalance pokes={pokes} />
+					</div>
 					<p className="text-muted-foreground text-sm">
 						{t("dashInvestorsSubtitle")}
 					</p>
@@ -278,7 +307,7 @@ export function InvestorsDashboardClient({
 			{investors.length > 0 ? (
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					{investors.map((inv) => (
-						<InvestorCard key={inv.id} investor={inv} />
+						<InvestorCard key={inv.id} investor={inv} pokes={pokes} />
 					))}
 				</div>
 			) : (

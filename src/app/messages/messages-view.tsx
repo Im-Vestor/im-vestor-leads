@@ -17,8 +17,7 @@ import { startSupportConversation } from "@/app/messages/start.actions";
 import { ChatPanel } from "@/components/messages/chat-panel";
 import { ConversationList } from "@/components/messages/conversation-list";
 import { Button } from "@/components/ui/button";
-import { useOnlineStatuses } from "@/hooks/use-online-statuses";
-import { usePresenceHeartbeat } from "@/hooks/use-presence-heartbeat";
+import { usePresenceStatuses } from "@/hooks/use-presence-statuses";
 import { useRealtimeConversations } from "@/hooks/use-realtime-conversations";
 import { useTranslation } from "@/hooks/use-translation";
 import { emitMessagesRead } from "@/lib/unread-events";
@@ -44,8 +43,6 @@ export function MessagesView({
 	const [contacting, startContact] = useTransition();
 	const t = useTranslation();
 
-	usePresenceHeartbeat();
-
 	const refreshConversations = useCallback(async () => {
 		const result = await getConversations();
 		if (result.ok) setConversations(result.data);
@@ -70,7 +67,7 @@ export function MessagesView({
 				.filter((id): id is string => !!id),
 		[conversations],
 	);
-	const onlineStatuses = useOnlineStatuses(otherIds);
+	const presenceStatuses = usePresenceStatuses(otherIds);
 
 	const selected = useMemo(
 		() => conversations?.find((c) => c.id === selectedId) ?? null,
@@ -118,7 +115,7 @@ export function MessagesView({
 						conversations={conversations}
 						selectedId={selectedId}
 						onSelect={setSelectedId}
-						onlineStatuses={onlineStatuses}
+						presenceStatuses={presenceStatuses}
 					/>
 				</div>
 			</aside>
@@ -136,8 +133,10 @@ export function MessagesView({
 						myUserId={myUserId}
 						other={selected.other}
 						isSupport={selected.isSupport}
-						isOtherOnline={
-							selected.other ? !!onlineStatuses[selected.other.id] : false
+						otherPresence={
+							selected.other
+								? (presenceStatuses[selected.other.id] ?? "offline")
+								: "offline"
 						}
 						onBack={() => setSelectedId(null)}
 						onMarkedAsRead={onMarkedAsRead}

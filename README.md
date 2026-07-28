@@ -11,6 +11,9 @@ for credits and memberships through Stripe.
   of interest; entrepreneur profiles surface their venture.
 - **Real-time messaging** — conversations, unread counts and notifications sync
   live over Supabase Realtime.
+- **Notifications** — a header bell with an unread badge and a popover feed,
+  covering messages, unlocked leads, purchases and billing. The important ones
+  are emailed too.
 - **Shop & wallet** — three things are purchasable through Stripe Checkout:
   - **Pokes** — introduction currency used to reach another member.
   - **Lead credits** — each one unlocks a lead's full profile, media and chat.
@@ -29,6 +32,7 @@ for credits and memberships through Stripe.
 | Database       | PostgreSQL via Prisma 7 (`@prisma/adapter-pg`)           |
 | Realtime       | Supabase Realtime (messaging, notifications)             |
 | Payments       | Stripe (Checkout + webhooks + billing portal)            |
+| Email          | Resend (transactional templates in `src/lib/email`)      |
 | Data fetching  | TanStack Query                                           |
 | UI             | Tailwind v4, shadcn / Base UI, `next-themes`             |
 | Tooling        | Biome (lint + format), Bun                               |
@@ -45,7 +49,7 @@ and Stripe projects.
 ```bash
 bun install                       # installs deps; postinstall runs `prisma generate`
 cp .env.example .env              # then fill in the values (see below)
-bunx prisma migrate dev           # apply the schema to your database
+bunx prisma migrate deploy        # apply the schema to your database
 bun dev                           # http://localhost:3000
 ```
 
@@ -61,8 +65,15 @@ Copy `.env.example` and fill these in:
   (`STRIPE_PRICE_SUBSCRIPTION_MONTHLY/ANNUAL`, `STRIPE_PRICE_POKE_PACK_3/5/10`,
   `STRIPE_PRICE_LEAD_CREDIT`).
 
+- **Resend** — `RESEND_API_KEY`, `EMAIL_FROM`, and `NEXT_PUBLIC_APP_URL` (the
+  public origin emails link back to).
+
 The shop boots without Stripe keys — products just show as "Coming soon" until
 the matching price ids are set. Full setup walkthrough: [`docs/STRIPE_SHOP_SETUP.md`](docs/STRIPE_SHOP_SETUP.md).
+
+Without `RESEND_API_KEY` no email is sent — each one is logged to the console
+instead. What the bell shows and what gets emailed at every step:
+[`docs/EMAILS.md`](docs/EMAILS.md).
 
 ## Scripts
 
@@ -84,8 +95,9 @@ src/
   components/     UI and feature components (shadcn/Base UI in components/ui)
   hooks/          Supabase Realtime hooks (messages, conversations, notifications)
   lib/            Domain logic — stripe catalog, prisma client, user helpers, supabase
-prisma/           Prisma schema and migrations
-docs/             Operational docs (Stripe shop setup)
+    email/        Resend client, brand templates and the notify* triggers
+prisma/           Prisma schema and migrations (read migrations/README.md first)
+docs/             Operational docs (Stripe shop setup, transactional emails)
 ```
 
 TEST TEST

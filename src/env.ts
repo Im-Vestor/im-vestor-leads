@@ -20,6 +20,9 @@ const serverSchema = z.object({
 	STRIPE_PRICE_POKE_PACK_10_MONTHLY: z.string().optional(),
 	STRIPE_PRICE_LEAD_CREDIT: z.string().optional(),
 	STRIPE_PRICE_HYPERTRAIN_TICKET: z.string().optional(),
+	RESEND_API_KEY: z.string().optional(),
+	EMAIL_FROM: z.string().optional(),
+	EMAIL_REPLY_TO: z.string().optional(),
 });
 
 const clientSchema = z.object({
@@ -27,6 +30,7 @@ const clientSchema = z.object({
 	NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
 	NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
 	NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+	NEXT_PUBLIC_APP_URL: z.string().optional(),
 });
 
 const clientEnv = {
@@ -37,28 +41,38 @@ const clientEnv = {
 		process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
 	NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
 		process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+	NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
 };
 
 const isServer = typeof window === "undefined";
 
+/**
+ * Names the offending variables inside the Error message itself. Browser and
+ * Next.js overlays only render the message string — a `console.error` with an
+ * object argument shows up as an unhelpful `{}`.
+ */
+function describe(scope: string, error: z.ZodError): string {
+	const lines = error.issues.map(
+		(issue) => `  • ${issue.path.join(".") || "(root)"} — ${issue.message}`,
+	);
+	return [
+		`Invalid ${scope} environment variables:`,
+		...lines,
+		"",
+		"Copy .env.example to .env and fill these in, then restart the dev server.",
+	].join("\n");
+}
+
 const parsedClient = clientSchema.safeParse(clientEnv);
 if (!parsedClient.success) {
-	console.error(
-		"❌ Invalid client environment variables:",
-		z.flattenError(parsedClient.error).fieldErrors,
-	);
-	throw new Error("Invalid client environment variables");
+	throw new Error(describe("client", parsedClient.error));
 }
 
 let server: z.infer<typeof serverSchema> | undefined;
 if (isServer) {
 	const parsedServer = serverSchema.safeParse(process.env);
 	if (!parsedServer.success) {
-		console.error(
-			"❌ Invalid server environment variables:",
-			z.flattenError(parsedServer.error).fieldErrors,
-		);
-		throw new Error("Invalid server environment variables");
+		throw new Error(describe("server", parsedServer.error));
 	}
 	server = parsedServer.data;
 }

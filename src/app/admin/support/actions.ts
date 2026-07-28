@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin";
+import { notifySupportReply } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateSupportUser } from "@/lib/support";
 import { getT } from "@/utils/translations/server";
@@ -210,13 +211,22 @@ export async function replyAsSupport(
 						data: recipients.map((userId) => ({
 							userId,
 							senderId: support.id,
-							type: "MESSAGE_RECEIVED" as const,
+							type: "SUPPORT_REPLY" as const,
 							message: preview,
+							link: "/messages",
 						})),
 					}),
 				]
 			: []),
 	]);
+
+	notifySupportReply({
+		conversationId: conversation.id,
+		messageId: message.id,
+		senderId: support.id,
+		recipientIds: recipients,
+		preview,
+	});
 
 	return { ok: true, data: message };
 }

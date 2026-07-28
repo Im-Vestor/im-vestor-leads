@@ -1,7 +1,12 @@
 import type Stripe from "stripe";
 import { env } from "@/env";
+import {
+	notifyPaymentFailed,
+	notifySubscriptionCancelled,
+	notifySubscriptionRenewed,
+} from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
-import { getStripe, PRODUCT_GRANTS } from "@/lib/stripe";
+import { getShopProduct, getStripe, PRODUCT_GRANTS } from "@/lib/stripe";
 import {
 	stripeCustomerId as customerId,
 	fulfillPaidCheckoutSession,
@@ -56,6 +61,8 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
 			return fulfillCheckout(event);
 		case "invoice.paid":
 			return fulfillInvoice(event);
+		case "invoice.payment_failed":
+			return reportPaymentFailure(event);
 		case "customer.subscription.updated":
 		case "customer.subscription.deleted":
 			return syncSubscription(event);
@@ -93,13 +100,40 @@ async function fulfillInvoice(event: Stripe.Event): Promise<void> {
 			},
 		}),
 	]);
+
+	if (productId) notifySubscriptionRenewed({ userId, productId });
+}
+
+/** Card declined — no grants change, the member just needs to fix billing. */
+async function reportPaymentFailure(event: Stripe.Event): Promise<void> {
+	const invoice = event.data.object as Stripe.Invoice;
+
+	const stripeCustomerId = customerId(invoice.customer);
+	if (!stripeCustomerId) return;
+
+	const productId = invoice.parent?.subscription_details?.metadata?.productId;
+	const planName = productId
+		? (getShopProduct(productId)?.name ?? "IM-VESTOR plan")
+		: "IM-VESTOR plan";
+
+	const amountLabel = new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: (invoice.currency ?? "eur").toUpperCase(),
+	}).format((invoice.amount_due ?? 0) / 100);
+
+	notifyPaymentFailed({
+		stripeCustomerId,
+		planName,
+		amountLabel,
+		attemptsLeft: Boolean(invoice.next_payment_attempt),
+	});
 }
 
 async function syncSubscription(event: Stripe.Event): Promise<void> {
 	const subscription = event.data.object as Stripe.Subscription;
 	const productId = subscription.metadata?.productId;
-	const grant = productId ? PRODUCT_GRANTS[productId] : undefined;
-	if (!grant?.plan) return;
+	if (!productId) return;
+	if (!PRODUCT_GRANTS[productId]?.plan) return;
 
 	const stripeCustomerId = customerId(subscription.customer);
 	if (!stripeCustomerId) return;
@@ -120,4 +154,11 @@ async function syncSubscription(event: Stripe.Event): Promise<void> {
 				: { subscriptionStatus: subscription.status },
 		}),
 	]);
+
+	if (cancelled) {
+		notifySubscriptionCancelled({
+			stripeCustomerId,
+			planName: getShopProduct(productId)?.name ?? "IM-VESTOR membership",
+		});
+	}
 }

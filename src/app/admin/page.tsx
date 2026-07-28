@@ -113,6 +113,22 @@ export default async function AdminDashboardPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle className="flex items-center gap-2 text-base">
+							<UsersIcon className="size-4" />
+							{t("adminUsersTitle")}
+						</CardTitle>
+						<CardDescription>{t("adminUsersSubtitle")}</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button render={<Link href="/admin/users" />}>
+							{t("adminDashboardOpenUsers")}
+							<ArrowRightIcon className="size-4" />
+						</Button>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2 text-base">
 							<LifeBuoyIcon className="size-4" />
 							{t("adminDashboardSupportInbox")}
 						</CardTitle>

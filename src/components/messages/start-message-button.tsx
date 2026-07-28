@@ -11,12 +11,15 @@ type Props = {
 	targetUserId: string;
 	label?: string;
 	variant?: "default" | "outline" | "secondary" | "ghost";
+	/** Match whatever it sits next to — card footers pair it with `sm` buttons. */
+	size?: "sm" | "default";
 };
 
 export function StartMessageButton({
 	targetUserId,
 	label = "Send message",
 	variant = "default",
+	size = "default",
 }: Props) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
@@ -32,9 +35,16 @@ export function StartMessageButton({
 		});
 	};
 
+	// No margin or size on the icon: the button's own `gap` and size variant
+	// handle both, so it stays in step whatever size the caller picks.
 	return (
-		<Button variant={variant} onClick={onClick} disabled={isPending}>
-			<MessageSquareIcon className="mr-2 size-4" />
+		<Button
+			variant={variant}
+			size={size}
+			onClick={onClick}
+			disabled={isPending}
+		>
+			<MessageSquareIcon />
 			{isPending ? "Opening…" : label}
 		</Button>
 	);

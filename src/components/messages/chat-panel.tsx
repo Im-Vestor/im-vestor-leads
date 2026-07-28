@@ -20,8 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useRealtimeMessages } from "@/hooks/use-realtime-messages";
+import { useTranslation } from "@/hooks/use-translation";
 import { getDisplayName } from "@/lib/messages/display-name";
+import type { PresenceStatus } from "@/lib/messages/presence";
 import { MessageBubble } from "./message-bubble";
+import { presenceLabelKey } from "./presence-dot";
 import { UserAvatar } from "./user-avatar";
 
 type OtherUser = {
@@ -36,7 +39,7 @@ type Props = {
 	myUserId: string;
 	other: OtherUser;
 	isSupport?: boolean;
-	isOtherOnline: boolean;
+	otherPresence: PresenceStatus;
 	onBack?: () => void;
 	onMarkedAsRead?: () => void;
 };
@@ -46,10 +49,11 @@ export function ChatPanel({
 	myUserId,
 	other,
 	isSupport,
-	isOtherOnline,
+	otherPresence,
 	onBack,
 	onMarkedAsRead,
 }: Props) {
+	const t = useTranslation();
 	const [messages, setMessages] = useState<MessageItem[] | null>(null);
 	const [draft, setDraft] = useState("");
 	const [isPending, startTransition] = useTransition();
@@ -172,7 +176,7 @@ export function ChatPanel({
 				) : null}
 				<UserAvatar
 					name={otherName}
-					isOnline={isOtherOnline}
+					presence={otherPresence}
 					support={isSupport}
 					size="md"
 				/>
@@ -184,11 +188,7 @@ export function ChatPanel({
 						) : null}
 					</span>
 					<span className="text-xs text-muted-foreground">
-						{isSupport
-							? "Support team"
-							: isOtherOnline
-								? "Online"
-								: (other?.role ?? "")}
+						{isSupport ? "Support team" : t(presenceLabelKey[otherPresence])}
 					</span>
 				</div>
 			</div>
