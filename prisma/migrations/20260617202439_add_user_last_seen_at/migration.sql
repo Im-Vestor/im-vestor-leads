@@ -100,5 +100,3 @@ ALTER TABLE "_ConversationParticipants" ADD CONSTRAINT "_ConversationParticipant
 
 -- AddForeignKey
 ALTER TABLE "_ConversationParticipants" ADD CONSTRAINT "_ConversationParticipants_B_fkey" FOREIGN KEY ("B") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
--- AlterTable
-ALTER TABLE "users" ADD COLUMN "lastSeenAt" TIMESTAMP(3);
