@@ -73,7 +73,7 @@ export async function startConversationForLead(
 
 	const project = await prisma.project.findUnique({
 		where: { id: parsed.data.projectId },
-		select: { entrepreneurId: true },
+		select: { entrepreneurId: true, hypertrainUntil: true },
 	});
 	if (!project) return { ok: false, error: t("errProjectNotFound") };
 
@@ -81,20 +81,33 @@ export async function startConversationForLead(
 		return { ok: false, error: t("errCannotMessageYourself") };
 	}
 
-	const unlocked = await prisma.projectUnlock.findUnique({
-		where: {
-			userId_projectId: { userId: me.id, projectId: parsed.data.projectId },
-		},
-		select: { id: true },
-	});
-	if (!unlocked) {
-		return { ok: false, error: t("errUnlockLeadFirst") };
+	// During the hypertrain window the chat is open to every investor; otherwise
+	// the lead must have been unlocked first.
+	const onHypertrain =
+		project.hypertrainUntil !== null && project.hypertrainUntil > new Date();
+	if (!onHypertrain) {
+		const unlocked = await prisma.projectUnlock.findUnique({
+			where: {
+				userId_projectId: { userId: me.id, projectId: parsed.data.projectId },
+			},
+			select: { id: true },
+		});
+		if (!unlocked) {
+			return { ok: false, error: t("errUnlockLeadFirst") };
+		}
 	}
 
 	const conversationId = await findOrCreateDirectConversation(
 		me.id,
 		project.entrepreneurId,
 	);
+
+	// Tag this thread as a lead/hypertrain chat so it locks once the window ends.
+	// Stamp only when unset, to avoid re-tagging a pre-existing free chat's project.
+	await prisma.conversation.updateMany({
+		where: { id: conversationId, projectId: null },
+		data: { projectId: parsed.data.projectId },
+	});
 
 	return { ok: true, data: { conversationId } };
 }

@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { findBannedWord } from "@/lib/messages/banned-words";
+import { isConversationLocked } from "@/lib/messages/conversation-access";
 import { notifyNewMessage } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { SUPPORT_EMAIL } from "@/lib/support";
@@ -30,6 +31,60 @@ async function assertParticipant(conversationId: string, userId: string) {
 	return !!conversation;
 }
 
+// Participant check + post-hypertrain lock for a single conversation.
+// `found` is false when the viewer is not a participant (or it doesn't exist).
+async function conversationAccess(
+	conversationId: string,
+	viewerId: string,
+): Promise<{ found: boolean; locked: boolean }> {
+	const convo = await prisma.conversation.findUnique({
+		where: { id: conversationId },
+		select: {
+			projectId: true,
+			project: { select: { hypertrainUntil: true, entrepreneurId: true } },
+			participants: { select: { id: true } },
+		},
+	});
+	if (!convo?.participants.some((p) => p.id === viewerId)) {
+		return { found: false, locked: false };
+	}
+	if (!convo.projectId || !convo.project) return { found: true, locked: false };
+
+	const viewerIsEntrepreneur = convo.project.entrepreneurId === viewerId;
+	let viewerPaid: boolean;
+	if (viewerIsEntrepreneur) {
+		const otherId = convo.participants.find((p) => p.id !== viewerId)?.id;
+		viewerPaid = otherId
+			? !!(await prisma.investorUnlock.findUnique({
+					where: {
+						entrepreneurId_investorId: {
+							entrepreneurId: viewerId,
+							investorId: otherId,
+						},
+					},
+					select: { id: true },
+				}))
+			: false;
+	} else {
+		viewerPaid = !!(await prisma.projectUnlock.findUnique({
+			where: {
+				userId_projectId: { userId: viewerId, projectId: convo.projectId },
+			},
+			select: { id: true },
+		}));
+	}
+
+	return {
+		found: true,
+		locked: isConversationLocked({
+			projectId: convo.projectId,
+			hypertrainUntil: convo.project.hypertrainUntil,
+			viewerPaid,
+			now: new Date(),
+		}),
+	};
+}
+
 export type ConversationListItem = {
 	id: string;
 	updatedAt: Date;
@@ -48,6 +103,8 @@ export type ConversationListItem = {
 	} | null;
 	unreadCount: number;
 	isSupport: boolean;
+	locked: boolean;
+	projectId: string | null;
 };
 
 export async function getConversations(): Promise<
@@ -61,6 +118,7 @@ export async function getConversations(): Promise<
 		where: { participants: { some: { id: me.id } } },
 		orderBy: { updatedAt: "desc" },
 		include: {
+			project: { select: { hypertrainUntil: true, entrepreneurId: true } },
 			participants: {
 				select: {
 					id: true,
@@ -96,15 +154,65 @@ export async function getConversations(): Promise<
 		unreadCounts.map((u) => [u.conversationId, u._count._all]),
 	);
 
+	// Post-hypertrain lock (see conversation-access). For each lead chat, this
+	// viewer's own unlock decides visibility: project unlock when they are the
+	// investor, investor unlock when they are the entrepreneur.
+	const projectIdsAsInvestor: string[] = [];
+	const investorIdsAsEntrepreneur: string[] = [];
+	for (const row of rows) {
+		if (!row.projectId || !row.project) continue;
+		const other = row.participants.find((p) => p.id !== me.id) ?? null;
+		if (row.project.entrepreneurId === me.id) {
+			if (other) investorIdsAsEntrepreneur.push(other.id);
+		} else {
+			projectIdsAsInvestor.push(row.projectId);
+		}
+	}
+	const [projectUnlocks, investorUnlocks] = await Promise.all([
+		projectIdsAsInvestor.length
+			? prisma.projectUnlock.findMany({
+					where: { userId: me.id, projectId: { in: projectIdsAsInvestor } },
+					select: { projectId: true },
+				})
+			: Promise.resolve([]),
+		investorIdsAsEntrepreneur.length
+			? prisma.investorUnlock.findMany({
+					where: {
+						entrepreneurId: me.id,
+						investorId: { in: investorIdsAsEntrepreneur },
+					},
+					select: { investorId: true },
+				})
+			: Promise.resolve([]),
+	]);
+	const unlockedProjectIds = new Set(projectUnlocks.map((u) => u.projectId));
+	const unlockedInvestorIds = new Set(investorUnlocks.map((u) => u.investorId));
+	const now = new Date();
+
 	const data: ConversationListItem[] = rows.map((row) => {
 		const other = row.participants.find((p) => p.id !== me.id) ?? null;
+		const viewerPaid =
+			row.projectId && row.project
+				? row.project.entrepreneurId === me.id
+					? !!other && unlockedInvestorIds.has(other.id)
+					: unlockedProjectIds.has(row.projectId)
+				: false;
+		const locked = isConversationLocked({
+			projectId: row.projectId,
+			hypertrainUntil: row.project?.hypertrainUntil ?? null,
+			viewerPaid,
+			now,
+		});
 		return {
 			id: row.id,
 			updatedAt: row.updatedAt,
 			other,
-			lastMessage: row.messages[0] ?? null,
-			unreadCount: unreadByConv.get(row.id) ?? 0,
+			// Don't leak preview/unread of hidden messages into the list.
+			lastMessage: locked ? null : (row.messages[0] ?? null),
+			unreadCount: locked ? 0 : (unreadByConv.get(row.id) ?? 0),
 			isSupport: other?.email === SUPPORT_EMAIL,
+			projectId: row.projectId,
+			locked,
 		};
 	});
 
@@ -136,9 +244,9 @@ export async function getMessages(
 	const me = await requireUser();
 	if (!me) return { ok: false, error: t("errNotAuthenticated") };
 
-	if (!(await assertParticipant(parsed.data.conversationId, me.id))) {
-		return { ok: false, error: t("errForbidden") };
-	}
+	const access = await conversationAccess(parsed.data.conversationId, me.id);
+	if (!access.found) return { ok: false, error: t("errForbidden") };
+	if (access.locked) return { ok: false, error: t("errChatLocked") };
 
 	const rows = await prisma.message.findMany({
 		where: { conversationId: parsed.data.conversationId },
@@ -182,6 +290,10 @@ export async function sendMessage(
 
 	const me = await requireUser();
 	if (!me) return { ok: false, error: t("errNotAuthenticated") };
+
+	const access = await conversationAccess(parsed.data.conversationId, me.id);
+	if (!access.found) return { ok: false, error: t("errForbidden") };
+	if (access.locked) return { ok: false, error: t("errChatLocked") };
 
 	const conversation = await prisma.conversation.findFirst({
 		where: {

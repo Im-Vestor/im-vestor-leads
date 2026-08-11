@@ -25,12 +25,14 @@ import { cn } from "@/lib/utils";
 
 type Props = {
 	myUserId: string;
+	myRole: string;
 	initialConversationId: string | null;
 	canContactSupport: boolean;
 };
 
 export function MessagesView({
 	myUserId,
+	myRole,
 	initialConversationId,
 	canContactSupport,
 }: Props) {
@@ -131,8 +133,11 @@ export function MessagesView({
 						key={selected.id}
 						conversationId={selected.id}
 						myUserId={myUserId}
+						myRole={myRole}
 						other={selected.other}
 						isSupport={selected.isSupport}
+						locked={selected.locked}
+						projectId={selected.projectId}
 						otherPresence={
 							selected.other
 								? (presenceStatuses[selected.other.id] ?? "offline")
@@ -140,6 +145,7 @@ export function MessagesView({
 						}
 						onBack={() => setSelectedId(null)}
 						onMarkedAsRead={onMarkedAsRead}
+						onUnlocked={refreshConversations}
 					/>
 				) : (
 					<div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">

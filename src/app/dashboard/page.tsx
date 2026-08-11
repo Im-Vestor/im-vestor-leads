@@ -43,9 +43,23 @@ async function pendingPokeReceiverIds(senderId: string): Promise<Set<string>> {
 	return new Set(rows.map((r) => r.receiverId));
 }
 
+// A project is revealed (out of anonymous mode) if it's permanently unlocked for
+// this viewer, or currently on the hypertrain — the public boost window.
+function revealed(
+	project: ProjectWithRefs,
+	unlockedIds: Set<string>,
+	now: Date,
+): boolean {
+	return (
+		unlockedIds.has(project.id) ||
+		(project.hypertrainUntil !== null && project.hypertrainUntil > now)
+	);
+}
+
 function toLead(
 	project: ProjectWithRefs,
 	unlocked: boolean,
+	revealed: boolean,
 	poked: boolean,
 	t: Awaited<ReturnType<typeof getT>>,
 ): LeadProject {
@@ -57,10 +71,11 @@ function toLead(
 		country: project.country,
 		date: project.createdAt.toISOString().slice(0, 10),
 		unlocked,
+		revealed,
 		poked,
 	};
 
-	if (!unlocked) {
+	if (!revealed) {
 		return {
 			...base,
 			name: areaNames[0]
@@ -229,10 +244,22 @@ export default async function DashboardPage({
 			areas={areas}
 			valueFilters={VALUE_FILTERS.map(({ key, label }) => ({ key, label }))}
 			featured={featured.map((p) =>
-				toLead(p, unlockedIds.has(p.id), poked(p.entrepreneurId), t),
+				toLead(
+					p,
+					unlockedIds.has(p.id),
+					revealed(p, unlockedIds, now),
+					poked(p.entrepreneurId),
+					t,
+				),
 			)}
 			projects={projects.map((p) =>
-				toLead(p, unlockedIds.has(p.id), poked(p.entrepreneurId), t),
+				toLead(
+					p,
+					unlockedIds.has(p.id),
+					revealed(p, unlockedIds, now),
+					poked(p.entrepreneurId),
+					t,
+				),
 			)}
 			filters={{ sector, country, value }}
 			canUnlock={me?.role === "INVESTOR" || me?.role === "ADMIN"}

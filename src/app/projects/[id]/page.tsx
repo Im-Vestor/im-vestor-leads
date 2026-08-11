@@ -37,11 +37,15 @@ export default async function ProjectDetailPage({
 
 	const canEdit = project.entrepreneurId === user.id || user.role === "ADMIN";
 	if (!canEdit) {
-		const unlock = await prisma.projectUnlock.findUnique({
-			where: { userId_projectId: { userId: user.id, projectId: id } },
-			select: { id: true },
-		});
-		if (!unlock) notFound();
+		const onHypertrain =
+			project.hypertrainUntil !== null && project.hypertrainUntil > new Date();
+		if (!onHypertrain) {
+			const unlock = await prisma.projectUnlock.findUnique({
+				where: { userId_projectId: { userId: user.id, projectId: id } },
+				select: { id: true },
+			});
+			if (!unlock) notFound();
+		}
 	}
 
 	const symbol = CURRENCY_SYMBOLS[project.currency];

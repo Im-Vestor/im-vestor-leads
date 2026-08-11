@@ -55,7 +55,8 @@ export type LeadProject = {
 	valueLabel: string;
 	country: string | null;
 	date: string;
-	unlocked: boolean;
+	unlocked: boolean; // permanently unlocked (lead credit spent) — drives premium styling
+	revealed: boolean; // out of anonymous mode: unlocked OR on the hypertrain
 	poked: boolean;
 	cover: { url: string; alt: string } | null;
 };
@@ -77,36 +78,41 @@ function ProjectMeta({ project }: { project: LeadProject }) {
 function FeaturedCard({ project }: { project: LeadProject }) {
 	const t = useTranslation();
 	return (
-		<Card className="flex-1 overflow-hidden pt-0">
-			{project.cover ? (
-				// biome-ignore lint/performance/noImgElement: supabase storage preview
-				<img
-					src={project.cover.url}
-					alt={project.cover.alt}
-					width={640}
-					height={160}
-					className="h-40 w-full object-cover"
-				/>
-			) : (
-				<div className="flex h-40 w-full items-center justify-center bg-muted">
-					<StarIcon className="size-8 text-muted-foreground" />
-				</div>
-			)}
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
-					{project.name}
-					<Badge>
-						<StarIcon /> {t("dashFeatured")}
-					</Badge>
-				</CardTitle>
-			</CardHeader>
-			<CardContent className="space-y-3">
-				<ProjectMeta project={project} />
-				<CardDescription className="line-clamp-3">
-					{project.desc}
-				</CardDescription>
-			</CardContent>
-		</Card>
+		<Link
+			href={`/projects/${project.id}`}
+			className="flex flex-1 transition-shadow hover:shadow-md"
+		>
+			<Card className="flex-1 overflow-hidden pt-0">
+				{project.cover ? (
+					// biome-ignore lint/performance/noImgElement: supabase storage preview
+					<img
+						src={project.cover.url}
+						alt={project.cover.alt}
+						width={640}
+						height={160}
+						className="h-40 w-full object-cover"
+					/>
+				) : (
+					<div className="flex h-40 w-full items-center justify-center bg-muted">
+						<StarIcon className="size-8 text-muted-foreground" />
+					</div>
+				)}
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						{project.name}
+						<Badge>
+							<StarIcon /> {t("dashFeatured")}
+						</Badge>
+					</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-3">
+					<ProjectMeta project={project} />
+					<CardDescription className="line-clamp-3">
+						{project.desc}
+					</CardDescription>
+				</CardContent>
+			</Card>
+		</Link>
 	);
 }
 
@@ -148,6 +154,18 @@ function ProjectCard({
 		});
 	}
 
+	const unlockButton =
+		canUnlock && !project.unlocked ? (
+			<Button
+				size="sm"
+				onClick={unlock}
+				disabled={isPending || leadCredits < 1}
+				title={leadCredits < 1 ? t("dashNoCredits") : ""}
+			>
+				<UnlockIcon /> {t("dashUnlockCredit")}
+			</Button>
+		) : null;
+
 	return (
 		<Card
 			className={
@@ -158,7 +176,7 @@ function ProjectCard({
 		>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
-					{project.unlocked && project.cover ? (
+					{project.revealed && project.cover ? (
 						// biome-ignore lint/performance/noImgElement: supabase storage preview
 						<img
 							src={project.cover.url}
@@ -167,7 +185,7 @@ function ProjectCard({
 							height={36}
 							className="size-9 shrink-0 rounded-md border object-cover"
 						/>
-					) : project.unlocked ? (
+					) : project.revealed ? (
 						<UnlockIcon className="size-4 text-muted-foreground" />
 					) : (
 						<LockIcon className="size-4 text-muted-foreground" />
@@ -179,10 +197,10 @@ function ProjectCard({
 				</div>
 			</CardHeader>
 			<CardContent className="space-y-3">
-				<CardDescription className={project.unlocked ? "" : "line-clamp-3"}>
+				<CardDescription className={project.revealed ? "" : "line-clamp-3"}>
 					{project.desc}
 				</CardDescription>
-				{!project.unlocked && (
+				{!project.revealed && (
 					<div className="flex items-center gap-2 rounded-md border border-dashed p-2.5 text-muted-foreground text-xs">
 						<LockIcon className="size-3.5 shrink-0" />
 						{t("dashLockedNotice")}
@@ -192,7 +210,7 @@ function ProjectCard({
 			<CardFooter className="mt-auto flex-wrap justify-between gap-x-4 gap-y-3">
 				<span className="text-muted-foreground text-xs">{project.date}</span>
 				<div className="flex gap-2">
-					{project.unlocked ? (
+					{project.revealed ? (
 						<>
 							<Button
 								size="sm"
@@ -208,6 +226,7 @@ function ProjectCard({
 							>
 								{t("dashViewDetails")} <ArrowRightIcon />
 							</Button>
+							{unlockButton}
 						</>
 					) : (
 						<>
@@ -216,16 +235,7 @@ function ProjectCard({
 								pokes={pokes}
 								alreadyPoked={project.poked}
 							/>
-							{canUnlock && (
-								<Button
-									size="sm"
-									onClick={unlock}
-									disabled={isPending || leadCredits < 1}
-									title={leadCredits < 1 ? t("dashNoCredits") : ""}
-								>
-									<UnlockIcon /> {t("dashUnlockCredit")}
-								</Button>
-							)}
+							{unlockButton}
 						</>
 					)}
 				</div>

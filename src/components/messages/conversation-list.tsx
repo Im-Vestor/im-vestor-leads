@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { BadgeCheckIcon, SearchIcon } from "lucide-react";
+import { BadgeCheckIcon, LockIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ConversationListItem } from "@/app/messages/actions";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +110,9 @@ export function ConversationList({
 													{c.isSupport ? (
 														<BadgeCheckIcon className="size-3.5 shrink-0 text-brand-gold" />
 													) : null}
+													{c.locked ? (
+														<LockIcon className="size-3 shrink-0 text-muted-foreground" />
+													) : null}
 												</span>
 												{c.lastMessage ? (
 													<span className="shrink-0 text-[10px] text-muted-foreground">
@@ -131,7 +134,9 @@ export function ConversationList({
 															: "text-muted-foreground",
 													)}
 												>
-													{c.lastMessage?.content ?? t("msgNoMessages")}
+													{c.locked
+														? t("msgChatLockedTitle")
+														: (c.lastMessage?.content ?? t("msgNoMessages"))}
 												</span>
 												{hasUnread ? (
 													<Badge className="ml-1 h-5 min-w-5 justify-center rounded-full px-1.5 text-[10px]">

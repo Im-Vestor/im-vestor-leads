@@ -18,6 +18,7 @@ export default async function MessagesPage({
 		<div className="mx-auto h-[calc(100dvh-9.5rem)] w-full max-w-content px-4 md:h-[calc(100vh-180px)]">
 			<MessagesView
 				myUserId={user.id}
+				myRole={user.role}
 				initialConversationId={sp.c ?? null}
 				canContactSupport={user.role !== UserRole.ADMIN}
 			/>

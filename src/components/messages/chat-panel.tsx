@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowLeftIcon, BadgeCheckIcon, SendIcon } from "lucide-react";
+import {
+	ArrowLeftIcon,
+	BadgeCheckIcon,
+	LockIcon,
+	SendIcon,
+	UnlockIcon,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
 	useCallback,
 	useEffect,
@@ -10,6 +17,7 @@ import {
 	useTransition,
 } from "react";
 import { toast } from "sonner";
+import { unlockInvestor, unlockProject } from "@/app/dashboard/actions";
 import {
 	getMessages,
 	type MessageItem,
@@ -37,26 +45,36 @@ type OtherUser = {
 type Props = {
 	conversationId: string;
 	myUserId: string;
+	myRole: string;
 	other: OtherUser;
 	isSupport?: boolean;
 	otherPresence: PresenceStatus;
+	locked: boolean;
+	projectId: string | null;
 	onBack?: () => void;
 	onMarkedAsRead?: () => void;
+	onUnlocked?: () => void;
 };
 
 export function ChatPanel({
 	conversationId,
 	myUserId,
+	myRole,
 	other,
 	isSupport,
 	otherPresence,
+	locked,
+	projectId,
 	onBack,
 	onMarkedAsRead,
+	onUnlocked,
 }: Props) {
 	const t = useTranslation();
+	const router = useRouter();
 	const [messages, setMessages] = useState<MessageItem[] | null>(null);
 	const [draft, setDraft] = useState("");
 	const [isPending, startTransition] = useTransition();
+	const [unlocking, startUnlock] = useTransition();
 	const scrollRef = useRef<HTMLDivElement | null>(null);
 
 	const [optimisticMessages, addOptimistic] = useOptimistic(
@@ -65,6 +83,7 @@ export function ChatPanel({
 	);
 
 	useEffect(() => {
+		if (locked) return;
 		let cancelled = false;
 		setMessages(null);
 		const load = async () => {
@@ -76,10 +95,12 @@ export function ChatPanel({
 		return () => {
 			cancelled = true;
 		};
-	}, [conversationId]);
+	}, [conversationId, locked]);
 
 	useEffect(() => {
 		if (!conversationId) return;
+		// Runs for locked chats too, so window-era unread can still be cleared —
+		// otherwise the global unread badge would stick with no way to open them.
 		let cancelled = false;
 		const run = async () => {
 			const result = await markAsRead({ conversationId });
@@ -92,6 +113,27 @@ export function ChatPanel({
 			cancelled = true;
 		};
 	}, [conversationId, onMarkedAsRead]);
+
+	const handleUnlock = useCallback(() => {
+		if (unlocking) return;
+		startUnlock(async () => {
+			const result =
+				myRole === "ENTREPRENEUR"
+					? other
+						? await unlockInvestor(other.id)
+						: { ok: false as const, error: t("errForbidden") }
+					: projectId
+						? await unlockProject(projectId)
+						: { ok: false as const, error: t("errForbidden") };
+			if (!result.ok) {
+				toast.error(result.error);
+				return;
+			}
+			toast.success(t("dashLeadUnlocked"));
+			onUnlocked?.();
+			router.refresh();
+		});
+	}, [myRole, other, projectId, unlocking, onUnlocked, router, t]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on message count change
 	useEffect(() => {
@@ -193,57 +235,74 @@ export function ChatPanel({
 				</div>
 			</div>
 
-			<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-				{messages === null ? (
-					<div className="flex flex-col gap-3">
-						{["a", "b", "c", "d"].map((k) => (
-							<Skeleton key={k} className="h-12 w-2/3 rounded-2xl" />
-						))}
+			{locked ? (
+				<div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+					<LockIcon className="size-8 text-muted-foreground" />
+					<div>
+						<p className="font-medium text-sm">{t("msgChatLockedTitle")}</p>
+						<p className="mt-1 text-muted-foreground text-sm">
+							{t("msgChatLockedDesc")}
+						</p>
 					</div>
-				) : optimisticMessages.length === 0 ? (
-					<div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-						No messages yet — say hi.
-					</div>
-				) : (
-					<div className="flex flex-col gap-3">
-						{optimisticMessages.map((m) => (
-							<MessageBubble
-								key={m.id}
-								content={m.content}
-								createdAt={m.createdAt}
-								isOwn={m.senderId === myUserId}
-								senderName={otherName}
-								senderIsSupport={isSupport}
-							/>
-						))}
-					</div>
-				)}
-			</div>
-
-			<div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-				<div className="flex items-end gap-2">
-					<Textarea
-						value={draft}
-						onChange={(e) => setDraft(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && !e.shiftKey) {
-								e.preventDefault();
-								handleSend();
-							}
-						}}
-						rows={1}
-						placeholder="Type a message…"
-						className="max-h-40 min-h-10 resize-none"
-					/>
-					<Button
-						size="icon-lg"
-						onClick={handleSend}
-						disabled={isPending || draft.trim().length === 0}
-					>
-						<SendIcon className="size-4" />
+					<Button onClick={handleUnlock} disabled={unlocking}>
+						<UnlockIcon className="size-4" /> {t("msgUnlockLead")}
 					</Button>
 				</div>
-			</div>
+			) : (
+				<>
+					<div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+						{messages === null ? (
+							<div className="flex flex-col gap-3">
+								{["a", "b", "c", "d"].map((k) => (
+									<Skeleton key={k} className="h-12 w-2/3 rounded-2xl" />
+								))}
+							</div>
+						) : optimisticMessages.length === 0 ? (
+							<div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
+								No messages yet — say hi.
+							</div>
+						) : (
+							<div className="flex flex-col gap-3">
+								{optimisticMessages.map((m) => (
+									<MessageBubble
+										key={m.id}
+										content={m.content}
+										createdAt={m.createdAt}
+										isOwn={m.senderId === myUserId}
+										senderName={otherName}
+										senderIsSupport={isSupport}
+									/>
+								))}
+							</div>
+						)}
+					</div>
+
+					<div className="border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+						<div className="flex items-end gap-2">
+							<Textarea
+								value={draft}
+								onChange={(e) => setDraft(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && !e.shiftKey) {
+										e.preventDefault();
+										handleSend();
+									}
+								}}
+								rows={1}
+								placeholder="Type a message…"
+								className="max-h-40 min-h-10 resize-none"
+							/>
+							<Button
+								size="icon-lg"
+								onClick={handleSend}
+								disabled={isPending || draft.trim().length === 0}
+							>
+								<SendIcon className="size-4" />
+							</Button>
+						</div>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }
