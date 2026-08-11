@@ -147,7 +147,7 @@ export const SHOP_PRODUCTS: ShopProduct[] = [
 		name: "Hypertrain Ticket",
 		description:
 			"Feature a project or your investor profile on the dashboard Hyper Train carousel for 7 days.",
-		priceLabel: "€30.00",
+		priceLabel: "€99.90",
 		priceId: env.STRIPE_PRICE_HYPERTRAIN_TICKET,
 		mode: "payment",
 		category: "hypertrain",
