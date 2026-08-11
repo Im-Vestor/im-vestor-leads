@@ -53,3 +53,8 @@ AGENTS.md
 
 # foglamp scan (scan.lock.json holds the edit token)
 /.foglamp/
+
+
+/graphify*
+
+INVOICE*
