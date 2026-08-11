@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AreaMultiSelect } from "@/components/areas/area-multi-select";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +14,7 @@ import {
 	NativeSelectOption,
 } from "@/components/ui/native-select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import type { InvestmentRange } from "@/generated/prisma/enums";
 import { useTranslation } from "@/hooks/use-translation";
 import {
 	COUNTRIES,
@@ -22,23 +22,23 @@ import {
 	INVESTMENT_RANGE_LABELS,
 	INVESTMENT_RANGES,
 	ROLE_LABEL_KEYS,
-	SECTOR_LABEL_KEYS,
-	SECTORS,
 	SIGNUP_ROLES,
 } from "@/lib/constants";
 import { completeSignup } from "./actions";
 
 type SignUpFormProps = {
+	areas: { id: string; name: string }[];
 	onSuccess?: () => void;
 	onSwitchToSignIn?: () => void;
 	initialRef?: string;
 };
 
 export function SignUpForm({
+	areas,
 	onSuccess,
 	onSwitchToSignIn,
 	initialRef,
-}: SignUpFormProps = {}) {
+}: SignUpFormProps) {
 	const t = useTranslation();
 	const { signUp } = useSignUp();
 	const clerk = useClerk();
@@ -53,15 +53,9 @@ export function SignUpForm({
 	const [role, setRole] = useState<"ENTREPRENEUR" | "INVESTOR">("ENTREPRENEUR");
 	const [referredByCode, setReferredByCode] = useState(initialRef ?? "");
 	const [capacity, setCapacity] = useState<InvestmentRange | "">("");
-	const [sectors, setSectors] = useState<Sector[]>([]);
+	const [areaIds, setAreaIds] = useState<string[]>([]);
 
 	const isInvestor = role === "INVESTOR";
-
-	function toggleSector(sector: Sector, checked: boolean) {
-		setSectors((prev) =>
-			checked ? [...prev, sector] : prev.filter((s) => s !== sector),
-		);
-	}
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -92,7 +86,7 @@ export function SignUpForm({
 				role,
 				referredByCode,
 				investmentCapacity: isInvestor && capacity ? capacity : null,
-				sectors: isInvestor ? sectors : [],
+				areaIds: isInvestor ? areaIds : [],
 			});
 			if (!result.ok) {
 				toast.error(result.error);
@@ -206,29 +200,17 @@ export function SignUpForm({
 						</NativeSelect>
 					</div>
 
-					<fieldset className="flex flex-col gap-3">
-						<legend className="mb-1 text-sm font-medium">
-							{t("authSectorsOfInterest")}
-						</legend>
-						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-							{SECTORS.map((s) => (
-								<label
-									key={s}
-									htmlFor={`sector-${s}`}
-									className="flex items-center gap-2 text-sm"
-								>
-									<Checkbox
-										id={`sector-${s}`}
-										checked={sectors.includes(s)}
-										onCheckedChange={(checked) =>
-											toggleSector(s, checked === true)
-										}
-									/>
-									{t(SECTOR_LABEL_KEYS[s])}
-								</label>
-							))}
-						</div>
-					</fieldset>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="areas">{t("authSectorsOfInterest")}</Label>
+						<AreaMultiSelect
+							id="areas"
+							areas={areas}
+							value={areaIds}
+							onChange={setAreaIds}
+							placeholder={t("authSearchAreas")}
+							emptyLabel={t("projNoSectorFound")}
+						/>
+					</div>
 				</>
 			)}
 

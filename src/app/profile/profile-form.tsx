@@ -4,9 +4,9 @@ import { useUser } from "@clerk/nextjs";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { AreaMultiSelect } from "@/components/areas/area-multi-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -21,11 +21,7 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "@/components/ui/native-select";
-import type {
-	InvestmentRange,
-	Sector,
-	UserRole,
-} from "@/generated/prisma/enums";
+import type { InvestmentRange, UserRole } from "@/generated/prisma/enums";
 import { useTranslation } from "@/hooks/use-translation";
 import {
 	COUNTRIES,
@@ -33,8 +29,6 @@ import {
 	INVESTMENT_RANGE_LABELS,
 	INVESTMENT_RANGES,
 	ROLE_LABEL_KEYS,
-	SECTOR_LABEL_KEYS,
-	SECTORS,
 } from "@/lib/constants";
 import { updateProfile } from "./actions";
 
@@ -44,11 +38,17 @@ type ProfileInitial = {
 	country: string;
 	role: UserRole;
 	investmentCapacity: InvestmentRange | null;
-	sectors: Sector[];
+	areaIds: string[];
 	referralCode: string;
 };
 
-export function ProfileForm({ initial }: { initial: ProfileInitial }) {
+export function ProfileForm({
+	initial,
+	areas,
+}: {
+	initial: ProfileInitial;
+	areas: { id: string; name: string }[];
+}) {
 	const t = useTranslation();
 	const { user } = useUser();
 	const [name, setName] = useState(initial.name);
@@ -56,7 +56,7 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 	const [capacity, setCapacity] = useState<InvestmentRange | "">(
 		initial.investmentCapacity ?? "",
 	);
-	const [sectors, setSectors] = useState<Sector[]>(initial.sectors);
+	const [areaIds, setAreaIds] = useState<string[]>(initial.areaIds);
 	const [isPending, startTransition] = useTransition();
 	const [origin, setOrigin] = useState("");
 
@@ -80,12 +80,6 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 		}
 	}
 
-	function toggleSector(sector: Sector, checked: boolean) {
-		setSectors((prev) =>
-			checked ? [...prev, sector] : prev.filter((s) => s !== sector),
-		);
-	}
-
 	function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		startTransition(async () => {
@@ -93,7 +87,7 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 				name,
 				country,
 				investmentCapacity: isInvestor && capacity ? capacity : null,
-				sectors: isInvestor ? sectors : [],
+				areaIds: isInvestor ? areaIds : [],
 			});
 			if (result.ok) {
 				await user?.reload();
@@ -171,29 +165,17 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 						</NativeSelect>
 					</div>
 
-					<fieldset className="flex flex-col gap-3">
-						<legend className="mb-1 text-sm font-medium">
-							{t("profSectorsOfInterest")}
-						</legend>
-						<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-							{SECTORS.map((s) => (
-								<label
-									key={s}
-									className="flex items-center gap-2 text-sm"
-									htmlFor={`sector-${s}`}
-								>
-									<Checkbox
-										id={`sector-${s}`}
-										checked={sectors.includes(s)}
-										onCheckedChange={(checked) =>
-											toggleSector(s, checked === true)
-										}
-									/>
-									{t(SECTOR_LABEL_KEYS[s])}
-								</label>
-							))}
-						</div>
-					</fieldset>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="areas">{t("profSectorsOfInterest")}</Label>
+						<AreaMultiSelect
+							id="areas"
+							areas={areas}
+							value={areaIds}
+							onChange={setAreaIds}
+							placeholder={t("profSearchAreas")}
+							emptyLabel={t("projNoSectorFound")}
+						/>
+					</div>
 				</>
 			)}
 

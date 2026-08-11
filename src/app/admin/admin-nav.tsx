@@ -4,6 +4,7 @@ import {
 	LayoutDashboardIcon,
 	LifeBuoyIcon,
 	ShieldIcon,
+	TagsIcon,
 	UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,6 +27,7 @@ const LINKS = [
 		labelKey: "adminNavModeration",
 		icon: ShieldIcon,
 	},
+	{ href: "/admin/areas", labelKey: "adminNavAreas", icon: TagsIcon },
 ] as const;
 
 export function AdminNav() {

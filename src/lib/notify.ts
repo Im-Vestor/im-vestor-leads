@@ -1,11 +1,8 @@
 import "server-only";
-import {
-	INVESTMENT_RANGE_LABELS,
-	ROLE_LABEL_KEYS,
-	SECTOR_LABEL_KEYS,
-} from "@/lib/constants";
+import { INVESTMENT_RANGE_LABELS, ROLE_LABEL_KEYS } from "@/lib/constants";
 import { deliver, sendEmail } from "@/lib/email/send";
 import {
+	areaRemovedEmail,
 	referralJoinedEmail,
 	welcomeEmail,
 } from "@/lib/email/templates/account";
@@ -59,6 +56,33 @@ function label(key: Parameters<typeof getTranslation>[1]): string {
 
 function displayName(user: { name: string | null; email: string }): string {
 	return user.name?.trim() || user.email;
+}
+
+/**
+ * Emails everyone who had an area on their profile after an admin removes it.
+ * Recipients carry a CTA path (entrepreneurs → their projects, investors →
+ * profile). De-duplicated by email; fire-and-forget like every other notify.
+ */
+export function notifyAreaRemoved(input: {
+	areaName: string;
+	recipients: { email: string; name: string | null; ctaPath: string }[];
+}): void {
+	deliver(async () => {
+		const seen = new Set<string>();
+		for (const r of input.recipients) {
+			if (!r.email || seen.has(r.email)) continue;
+			seen.add(r.email);
+			await sendEmail({
+				to: r.email,
+				tag: "area-removed",
+				...areaRemovedEmail({
+					recipientName: displayName(r),
+					areaName: input.areaName,
+					ctaPath: r.ctaPath,
+				}),
+			});
+		}
+	});
 }
 
 // ---------------------------------------------------------------- account
@@ -206,7 +230,7 @@ export function notifyLeadUnlocked(input: {
 					name: true,
 					country: true,
 					investmentCapacity: true,
-					sectors: true,
+					areasOfInterest: { select: { name: true } },
 					leadCredits: true,
 				},
 			}),
@@ -242,9 +266,7 @@ export function notifyLeadUnlocked(input: {
 				investorCapacity: investor.investmentCapacity
 					? INVESTMENT_RANGE_LABELS[investor.investmentCapacity]
 					: null,
-				investorSectors: investor.sectors.map((s) =>
-					label(SECTOR_LABEL_KEYS[s]),
-				),
+				investorSectors: investor.areasOfInterest.map((a) => a.name),
 			}),
 		});
 

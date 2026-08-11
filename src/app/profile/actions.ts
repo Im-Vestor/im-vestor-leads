@@ -10,18 +10,6 @@ import { getStripe } from "@/lib/stripe";
 import { getOrCreateUser, syncNameToClerk } from "@/lib/user";
 import { getT } from "@/utils/translations/server";
 
-const sectorValues = [
-	"TECHNOLOGY",
-	"HEALTHCARE",
-	"FINTECH",
-	"EDTECH",
-	"CLEANTECH",
-	"ECOMMERCE",
-	"SAAS",
-	"AGRITECH",
-	"PROPTECH",
-	"BIOTECH",
-] as const;
 const rangeValues = [
 	"R_10K_50K",
 	"R_50K_200K",
@@ -35,7 +23,7 @@ const profileSchema = z.object({
 	name: z.string().trim().max(120).optional().or(z.literal("")),
 	country: z.string().trim().max(80).optional().or(z.literal("")),
 	investmentCapacity: z.enum(rangeValues).nullable().optional(),
-	sectors: z.array(z.enum(sectorValues)).default([]),
+	areaIds: z.array(z.string().min(1)).default([]),
 });
 
 export type ProfileInput = z.input<typeof profileSchema>;
@@ -77,7 +65,9 @@ export async function updateProfile(
 				investmentCapacity: isInvestor
 					? (data.investmentCapacity ?? null)
 					: null,
-				sectors: isInvestor ? data.sectors : [],
+				areasOfInterest: {
+					set: isInvestor ? data.areaIds.map((id) => ({ id })) : [],
+				},
 			},
 		});
 	} catch {

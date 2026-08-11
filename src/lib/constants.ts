@@ -1,4 +1,4 @@
-import { InvestmentRange, Sector, UserRole } from "@/generated/prisma/enums";
+import { InvestmentRange, UserRole } from "@/generated/prisma/enums";
 import type { TranslationKey } from "@/utils/translations";
 
 export const ROLE_LABEL_KEYS: Record<UserRole, TranslationKey> = {
@@ -12,19 +12,6 @@ export const SIGNUP_ROLES: UserRole[] = [
 	UserRole.INVESTOR,
 ];
 
-export const SECTOR_LABEL_KEYS: Record<Sector, TranslationKey> = {
-	[Sector.TECHNOLOGY]: "sectorTechnology",
-	[Sector.HEALTHCARE]: "sectorHealthcare",
-	[Sector.FINTECH]: "sectorFintech",
-	[Sector.EDTECH]: "sectorEdtech",
-	[Sector.CLEANTECH]: "sectorCleantech",
-	[Sector.ECOMMERCE]: "sectorEcommerce",
-	[Sector.SAAS]: "sectorSaas",
-	[Sector.AGRITECH]: "sectorAgritech",
-	[Sector.PROPTECH]: "sectorProptech",
-	[Sector.BIOTECH]: "sectorBiotech",
-};
-
 export const INVESTMENT_RANGE_LABELS: Record<InvestmentRange, string> = {
 	[InvestmentRange.R_10K_50K]: "€10K–€50K",
 	[InvestmentRange.R_50K_200K]: "€50K–€200K",
@@ -35,7 +22,6 @@ export const INVESTMENT_RANGE_LABELS: Record<InvestmentRange, string> = {
 };
 
 export const ROLES = Object.values(UserRole);
-export const SECTORS = Object.values(Sector);
 export const INVESTMENT_RANGES = Object.values(InvestmentRange);
 
 export const COUNTRIES = [

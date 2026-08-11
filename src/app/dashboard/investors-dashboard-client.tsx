@@ -32,15 +32,13 @@ import {
 	NativeSelect,
 	NativeSelectOption,
 } from "@/components/ui/native-select";
-import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import type { InvestmentRange } from "@/generated/prisma/enums";
 import { useTranslation } from "@/hooks/use-translation";
 import {
 	COUNTRIES,
 	COUNTRY_LABEL_KEYS,
 	INVESTMENT_RANGE_LABELS,
 	INVESTMENT_RANGES,
-	SECTOR_LABEL_KEYS,
-	SECTORS,
 } from "@/lib/constants";
 import { getInitials } from "@/lib/messages/display-name";
 import { cn } from "@/lib/utils";
@@ -50,7 +48,7 @@ export type InvestorLead = {
 	name: string;
 	country: string | null;
 	capacity: InvestmentRange | null;
-	sectors: Sector[];
+	areas: string[];
 	date: string;
 	/** A poke is out, waiting for this investor's answer. */
 	poked: boolean;
@@ -79,15 +77,14 @@ function InvestorAvatar({
 }
 
 function InvestorMeta({ investor }: { investor: InvestorLead }) {
-	const t = useTranslation();
 	return (
 		<div className="flex flex-wrap gap-1.5">
 			{investor.capacity && (
 				<Badge>{INVESTMENT_RANGE_LABELS[investor.capacity]}</Badge>
 			)}
-			{investor.sectors.map((s) => (
-				<Badge key={s} variant="secondary">
-					{t(SECTOR_LABEL_KEYS[s])}
+			{investor.areas.map((a) => (
+				<Badge key={a} variant="secondary">
+					{a}
 				</Badge>
 			))}
 			{investor.country && <Badge variant="outline">{investor.country}</Badge>}
@@ -161,11 +158,13 @@ function InvestorCard({
 }
 
 export function InvestorsDashboardClient({
+	areas,
 	featured,
 	investors,
 	filters,
 	pokes,
 }: {
+	areas: { id: string; name: string }[];
 	featured: InvestorLead[];
 	investors: InvestorLead[];
 	filters: { sector: string; country: string; capacity: string };
@@ -265,9 +264,9 @@ export function InvestorsDashboardClient({
 						<NativeSelectOption value="">
 							{t("dashAllSectors")}
 						</NativeSelectOption>
-						{SECTORS.map((s) => (
-							<NativeSelectOption key={s} value={s}>
-								{t(SECTOR_LABEL_KEYS[s])}
+						{areas.map((a) => (
+							<NativeSelectOption key={a.id} value={a.id}>
+								{a.name}
 							</NativeSelectOption>
 						))}
 					</NativeSelect>

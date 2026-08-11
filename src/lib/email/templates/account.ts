@@ -18,8 +18,8 @@ const FIRST_STEPS: Record<Role, string[]> = {
 		"<strong>Watch your inbox</strong> — every unlocked lead can start a conversation.",
 	],
 	INVESTOR: [
-		"<strong>Set your sectors and ticket size</strong> — it is how founders find you.",
-		"<strong>Browse the dashboard</strong> — filter projects by sector, stage and value.",
+		"<strong>Set your areas of interest and ticket size</strong> — it is how founders find you.",
+		"<strong>Browse the dashboard</strong> — filter projects by area, stage and value.",
 		"<strong>Spend a lead credit</strong> — unlock the full profile, media and chat.",
 	],
 	ADMIN: [
@@ -110,5 +110,30 @@ export function referralJoinedEmail(input: {
 		cta: { label: "Open the marketplace", href: appUrl("/dashboard") },
 		footerNote:
 			"You are receiving this because someone used your IM-VESTOR referral code.",
+	});
+}
+
+export function areaRemovedEmail(input: {
+	recipientName: string;
+	areaName: string;
+	ctaPath: string;
+}): EmailContent {
+	return buildEmail({
+		subject: `An area of interest was removed: ${input.areaName}`,
+		preheader: `"${input.areaName}" is no longer available on IM-VESTOR.`,
+		eyebrow: "Areas of interest",
+		title: `"${esc(input.areaName)}" was removed`,
+		blocks: [
+			p(`Hi ${esc(input.recipientName)},`),
+			p(
+				`The area <strong>${esc(input.areaName)}</strong> was removed from IM-VESTOR, so it is no longer part of your profile.`,
+			),
+			p(
+				"You can head to the platform and pick a different area of interest — or leave it blank, whichever you prefer.",
+			),
+		],
+		cta: { label: "Choose a new area", href: appUrl(input.ctaPath) },
+		footerNote:
+			"You are receiving this because you had this area on your IM-VESTOR profile.",
 	});
 }

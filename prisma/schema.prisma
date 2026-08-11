@@ -36,19 +36,6 @@ enum NotificationType {
   PAYMENT_FAILED
 }
 
-enum Sector {
-  TECHNOLOGY
-  HEALTHCARE
-  FINTECH
-  EDTECH
-  CLEANTECH
-  ECOMMERCE
-  SAAS
-  AGRITECH
-  PROPTECH
-  BIOTECH
-}
-
 enum InvestmentRange {
   R_10K_50K   @map("10K-50K")
   R_50K_200K  @map("50K-200K")
@@ -96,7 +83,6 @@ model User {
   referrals      User[]  @relation("Referrals")
 
   investmentCapacity InvestmentRange?
-  sectors            Sector[]
 
   pokes              Int       @default(2)
   leadCredits        Int       @default(1)
@@ -120,6 +106,7 @@ model User {
   notifications    Notification[]  @relation("UserNotifications")
   projects         Project[]       @relation("EntrepreneurProjects")
   unlockedProjects ProjectUnlock[] @relation("UserUnlocks")
+  areasOfInterest  Area[]
 
   investorUnlocksMade     InvestorUnlock[] @relation("InvestorUnlockBuyer")
   investorUnlocksReceived InvestorUnlock[] @relation("InvestorUnlockTarget")
@@ -224,9 +211,10 @@ model ProcessedStripeEvent {
 }
 
 model Area {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  projects Project[]
+  id        String    @id @default(cuid())
+  name      String    @unique
+  projects  Project[]
+  investors User[]
 
   @@map("areas")
 }

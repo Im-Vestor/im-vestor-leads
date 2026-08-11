@@ -8,18 +8,6 @@ import { syncNameToClerk } from "@/lib/user";
 import { getT } from "@/utils/translations/server";
 
 const roleValues = ["ENTREPRENEUR", "INVESTOR"] as const;
-const sectorValues = [
-	"TECHNOLOGY",
-	"HEALTHCARE",
-	"FINTECH",
-	"EDTECH",
-	"CLEANTECH",
-	"ECOMMERCE",
-	"SAAS",
-	"AGRITECH",
-	"PROPTECH",
-	"BIOTECH",
-] as const;
 const rangeValues = [
 	"R_10K_50K",
 	"R_50K_200K",
@@ -37,10 +25,10 @@ const signupSchema = z
 		role: z.enum(roleValues),
 		referredByCode: z.string().trim().max(20).optional().or(z.literal("")),
 		investmentCapacity: z.enum(rangeValues).nullable().optional(),
-		sectors: z.array(z.enum(sectorValues)).default([]),
+		areaIds: z.array(z.string().min(1)).default([]),
 	})
 	.transform((d) =>
-		d.role === "INVESTOR" ? d : { ...d, investmentCapacity: null, sectors: [] },
+		d.role === "INVESTOR" ? d : { ...d, investmentCapacity: null, areaIds: [] },
 	);
 
 export type CompleteSignupInput = z.input<typeof signupSchema>;
@@ -86,7 +74,7 @@ export async function completeSignup(
 				country: data.country?.trim() || null,
 				role: data.role,
 				investmentCapacity: data.investmentCapacity ?? null,
-				sectors: data.sectors,
+				areasOfInterest: { set: data.areaIds.map((id) => ({ id })) },
 				referredByCode,
 			},
 			create: {
@@ -96,7 +84,7 @@ export async function completeSignup(
 				country: data.country?.trim() || null,
 				role: data.role,
 				investmentCapacity: data.investmentCapacity ?? null,
-				sectors: data.sectors,
+				areasOfInterest: { connect: data.areaIds.map((id) => ({ id })) },
 				referredByCode,
 				referralCode: generateReferralCode(data.name || data.email),
 			},

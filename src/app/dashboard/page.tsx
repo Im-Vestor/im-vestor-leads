@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import type { InvestmentRange, Sector } from "@/generated/prisma/enums";
+import type { InvestmentRange } from "@/generated/prisma/enums";
 import { openContactIds } from "@/lib/messages/contact";
 import { getDisplayName } from "@/lib/messages/display-name";
 import { prisma } from "@/lib/prisma";
@@ -116,7 +116,7 @@ export default async function DashboardPage({
 
 		const investorWhere: Prisma.UserWhereInput = {
 			role: "INVESTOR",
-			...(sector ? { sectors: { has: sector as Sector } } : {}),
+			...(sector ? { areasOfInterest: { some: { id: sector } } } : {}),
 			...(country ? { country } : {}),
 			...(capacity ? { investmentCapacity: capacity as InvestmentRange } : {}),
 		};
@@ -126,28 +126,33 @@ export default async function DashboardPage({
 			name: true,
 			email: true,
 			country: true,
-			sectors: true,
+			areasOfInterest: { select: { name: true }, orderBy: { name: "asc" } },
 			investmentCapacity: true,
 			createdAt: true,
 		} satisfies Prisma.UserSelect;
 
 		const now = new Date();
-		const [investors, featured, pendingIds, contactIds] = await Promise.all([
-			prisma.user.findMany({
-				where: investorWhere,
-				orderBy: { createdAt: "desc" },
-				take: 60,
-				select: investorSelect,
-			}),
-			prisma.user.findMany({
-				where: { role: "INVESTOR", hypertrainUntil: { gt: now } },
-				orderBy: { hypertrainUntil: "asc" },
-				take: 8,
-				select: investorSelect,
-			}),
-			pendingPokeReceiverIds(me.id),
-			openContactIds(me.id),
-		]);
+		const [areas, investors, featured, pendingIds, contactIds] =
+			await Promise.all([
+				prisma.area.findMany({
+					orderBy: { name: "asc" },
+					select: { id: true, name: true },
+				}),
+				prisma.user.findMany({
+					where: investorWhere,
+					orderBy: { createdAt: "desc" },
+					take: 60,
+					select: investorSelect,
+				}),
+				prisma.user.findMany({
+					where: { role: "INVESTOR", hypertrainUntil: { gt: now } },
+					orderBy: { hypertrainUntil: "asc" },
+					take: 8,
+					select: investorSelect,
+				}),
+				pendingPokeReceiverIds(me.id),
+				openContactIds(me.id),
+			]);
 
 		const toInvestor = (
 			u: Prisma.UserGetPayload<{ select: typeof investorSelect }>,
@@ -156,7 +161,7 @@ export default async function DashboardPage({
 			name: getDisplayName(u),
 			country: u.country,
 			capacity: u.investmentCapacity,
-			sectors: u.sectors,
+			areas: u.areasOfInterest.map((a) => a.name),
 			date: u.createdAt.toISOString().slice(0, 10),
 			poked: pendingIds.has(u.id),
 			connected: contactIds.has(u.id),
@@ -164,6 +169,7 @@ export default async function DashboardPage({
 
 		return (
 			<InvestorsDashboardClient
+				areas={areas}
 				featured={featured.map(toInvestor)}
 				investors={investors.map(toInvestor)}
 				filters={{ sector, country, capacity }}
