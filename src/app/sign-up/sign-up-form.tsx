@@ -31,11 +31,13 @@ import { completeSignup } from "./actions";
 type SignUpFormProps = {
 	onSuccess?: () => void;
 	onSwitchToSignIn?: () => void;
+	initialRef?: string;
 };
 
 export function SignUpForm({
 	onSuccess,
 	onSwitchToSignIn,
+	initialRef,
 }: SignUpFormProps = {}) {
 	const t = useTranslation();
 	const { signUp } = useSignUp();
@@ -49,7 +51,7 @@ export function SignUpForm({
 	const [name, setName] = useState("");
 	const [country, setCountry] = useState("");
 	const [role, setRole] = useState<"ENTREPRENEUR" | "INVESTOR">("ENTREPRENEUR");
-	const [referredByCode, setReferredByCode] = useState("");
+	const [referredByCode, setReferredByCode] = useState(initialRef ?? "");
 	const [capacity, setCapacity] = useState<InvestmentRange | "">("");
 	const [sectors, setSectors] = useState<Sector[]>([]);
 

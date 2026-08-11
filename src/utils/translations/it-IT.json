@@ -447,5 +447,14 @@
 	"errPokeNotFound": "Poke non trovato",
 	"errPokeAlreadyAnswered": "Questo poke ha già ricevuto una risposta.",
 	"errCouldNotSendPoke": "Impossibile inviare il poke. Riprova.",
-	"errCouldNotAnswerPoke": "Impossibile rispondere al poke. Riprova."
+	"errCouldNotAnswerPoke": "Impossibile rispondere al poke. Riprova.",
+	"profReferralCopyLink": "Copia link",
+	"profReferralShare": "Condividi",
+	"profReferralQr": "Codice QR",
+	"profReferralQrHint": "Scansiona per creare un account con questo codice di invito.",
+	"profReferralLinkCopied": "Link copiato",
+	"errChatLocked": "Questa conversazione è bloccata.",
+	"msgChatLockedTitle": "Chat bloccata",
+	"msgChatLockedDesc": "Il periodo pubblico di questo lead è terminato. Sblocca il lead per leggere e continuare questa conversazione.",
+	"msgUnlockLead": "Sblocca lead (1 credito)"
 }

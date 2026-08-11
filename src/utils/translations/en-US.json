@@ -447,5 +447,14 @@
 	"errPokeNotFound": "Poke not found",
 	"errPokeAlreadyAnswered": "This poke was already answered.",
 	"errCouldNotSendPoke": "Could not send the poke. Try again.",
-	"errCouldNotAnswerPoke": "Could not answer the poke. Try again."
+	"errCouldNotAnswerPoke": "Could not answer the poke. Try again.",
+	"profReferralCopyLink": "Copy link",
+	"profReferralShare": "Share",
+	"profReferralQr": "QR Code",
+	"profReferralQrHint": "Scan to sign up with this referral code.",
+	"profReferralLinkCopied": "Link copied",
+	"errChatLocked": "This conversation is locked.",
+	"msgChatLockedTitle": "Chat locked",
+	"msgChatLockedDesc": "This lead's public window has ended. Unlock the lead to read and continue this conversation.",
+	"msgUnlockLead": "Unlock lead (1 credit)"
 }

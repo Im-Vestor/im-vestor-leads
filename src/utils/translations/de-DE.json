@@ -447,5 +447,14 @@
 	"errPokeNotFound": "Poke nicht gefunden",
 	"errPokeAlreadyAnswered": "Dieser Poke wurde bereits beantwortet.",
 	"errCouldNotSendPoke": "Poke konnte nicht gesendet werden. Versuche es erneut.",
-	"errCouldNotAnswerPoke": "Antwort auf den Poke fehlgeschlagen. Versuche es erneut."
+	"errCouldNotAnswerPoke": "Antwort auf den Poke fehlgeschlagen. Versuche es erneut.",
+	"profReferralCopyLink": "Link kopieren",
+	"profReferralShare": "Teilen",
+	"profReferralQr": "QR-Code",
+	"profReferralQrHint": "Scannen Sie, um ein Konto mit diesem Empfehlungscode zu erstellen.",
+	"profReferralLinkCopied": "Link kopiert",
+	"errChatLocked": "Diese Unterhaltung ist gesperrt.",
+	"msgChatLockedTitle": "Chat gesperrt",
+	"msgChatLockedDesc": "Das öffentliche Zeitfenster dieses Leads ist beendet. Schalte den Lead frei, um diese Unterhaltung zu lesen und fortzusetzen.",
+	"msgUnlockLead": "Lead freischalten (1 Guthaben)"
 }

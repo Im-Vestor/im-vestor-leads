@@ -1,11 +1,20 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useState, useTransition } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -49,8 +58,27 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 	);
 	const [sectors, setSectors] = useState<Sector[]>(initial.sectors);
 	const [isPending, startTransition] = useTransition();
+	const [origin, setOrigin] = useState("");
+
+	useEffect(() => {
+		setOrigin(window.location.origin);
+	}, []);
 
 	const isInvestor = initial.role === "INVESTOR";
+	const referralUrl = `${origin}/r/${initial.referralCode}`;
+
+	function copyReferralLink() {
+		void navigator.clipboard.writeText(referralUrl);
+		toast.success(t("profReferralLinkCopied"));
+	}
+
+	function shareReferralLink() {
+		if (navigator.share) {
+			navigator.share({ url: referralUrl }).catch(() => {});
+		} else {
+			copyReferralLink();
+		}
+	}
 
 	function toggleSector(sector: Sector, checked: boolean) {
 		setSectors((prev) =>
@@ -169,18 +197,56 @@ export function ProfileForm({ initial }: { initial: ProfileInitial }) {
 				</>
 			)}
 
-			<div className="flex flex-col gap-4 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-				<div className="min-w-0 break-words text-sm text-muted-foreground">
-					{t("profReferralCode")}{" "}
-					<span className="font-mono font-medium text-foreground">
-						{initial.referralCode}
-					</span>
+			<div className="flex flex-col gap-4 border-t pt-4">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<div className="min-w-0 break-words text-sm text-muted-foreground">
+						{t("profReferralCode")}{" "}
+						<span className="font-mono font-medium text-foreground">
+							{initial.referralCode}
+						</span>
+					</div>
+					<div className="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={copyReferralLink}
+						>
+							{t("profReferralCopyLink")}
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={shareReferralLink}
+						>
+							{t("profReferralShare")}
+						</Button>
+						<Dialog>
+							<DialogTrigger
+								render={<Button type="button" variant="outline" size="sm" />}
+							>
+								{t("profReferralQr")}
+							</DialogTrigger>
+							<DialogContent className="sm:max-w-sm">
+								<DialogHeader>
+									<DialogTitle>{initial.referralCode}</DialogTitle>
+									<DialogDescription>
+										{t("profReferralQrHint")}
+									</DialogDescription>
+								</DialogHeader>
+								<div className="mx-auto rounded-lg bg-white p-4">
+									<QRCodeSVG value={referralUrl} size={224} />
+								</div>
+							</DialogContent>
+						</Dialog>
+					</div>
 				</div>
 				<Button
 					type="submit"
 					size="lg"
 					disabled={isPending}
-					className="w-full sm:w-auto"
+					className="w-full sm:w-auto sm:self-end"
 				>
 					{isPending ? t("commonSaving") : t("profSaveChanges")}
 				</Button>
