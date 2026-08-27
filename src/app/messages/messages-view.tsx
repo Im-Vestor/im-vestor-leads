@@ -58,9 +58,51 @@ export function MessagesView({
 		() => conversations?.map((c) => c.id) ?? [],
 		[conversations],
 	);
-	useRealtimeConversations(conversationIds, () => {
-		void refreshConversations();
-	});
+	const onIncomingListMessage = useCallback(
+		(row: {
+			id: string;
+			conversation_id: string;
+			sender_id: string;
+			content: string;
+			created_at: string;
+		}) => {
+			setConversations((prev) => {
+				if (!prev) return prev;
+				const idx = prev.findIndex((c) => c.id === row.conversation_id);
+				// New conversation we don't know about yet → full refresh to fetch it.
+				if (idx === -1) {
+					void refreshConversations();
+					return prev;
+				}
+				const target = prev[idx];
+				if (!target || target.lastMessage?.id === row.id) return prev;
+				const fromOther = row.sender_id !== myUserId;
+				const isOpen = row.conversation_id === selectedId;
+				const updated: ConversationListItem = {
+					...target,
+					updatedAt: new Date(row.created_at),
+					lastMessage: {
+						id: row.id,
+						content: row.content,
+						createdAt: new Date(row.created_at),
+						senderId: row.sender_id,
+					},
+					// Don't bump unread for the open thread (ChatPanel marks it read)
+					// or for my own messages.
+					unreadCount:
+						fromOther && !isOpen
+							? target.unreadCount + 1
+							: target.unreadCount,
+				};
+				const next = [...prev];
+				next.splice(idx, 1);
+				next.unshift(updated);
+				return next;
+			});
+		},
+		[myUserId, selectedId, refreshConversations],
+	);
+	useRealtimeConversations(conversationIds, onIncomingListMessage);
 
 	const otherIds = useMemo(
 		() =>

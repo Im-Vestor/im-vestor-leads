@@ -76,20 +76,39 @@ export function ChatPanel({
 	const [isPending, startTransition] = useTransition();
 	const [unlocking, startUnlock] = useTransition();
 	const scrollRef = useRef<HTMLDivElement | null>(null);
+	// Ids of messages this client already appended (via optimistic send or a
+	// prior realtime insert) so a duplicate realtime echo is ignored.
+	const seenIdsRef = useRef<Set<string>>(new Set());
 
 	const [optimisticMessages, addOptimistic] = useOptimistic(
 		messages ?? [],
-		(state: MessageItem[], pending: MessageItem) => [...state, pending],
+		(state: MessageItem[], pending: MessageItem) => {
+			// If the real message already landed (via the send response or a
+			// realtime echo) while this transition was still pending, don't render
+			// the optimistic copy on top of it.
+			const alreadyLanded = state.some(
+				(m) =>
+					m.senderId === pending.senderId &&
+					m.content === pending.content &&
+					m.createdAt.getTime() >= pending.createdAt.getTime() - 5000,
+			);
+			if (alreadyLanded) return state;
+			return [...state, pending];
+		},
 	);
 
 	useEffect(() => {
 		if (locked) return;
 		let cancelled = false;
 		setMessages(null);
+		seenIdsRef.current = new Set();
 		const load = async () => {
 			const result = await getMessages({ conversationId });
 			if (cancelled) return;
-			if (result.ok) setMessages(result.data.messages);
+			if (result.ok) {
+				for (const m of result.data.messages) seenIdsRef.current.add(m.id);
+				setMessages(result.data.messages);
+			}
 		};
 		void load();
 		return () => {
@@ -149,6 +168,8 @@ export function ChatPanel({
 			content: string;
 			created_at: string;
 		}) => {
+			if (seenIdsRef.current.has(row.id)) return;
+			seenIdsRef.current.add(row.id);
 			setMessages((prev) => {
 				if (!prev) return prev;
 				if (prev.some((m) => m.id === row.id)) return prev;
@@ -192,6 +213,7 @@ export function ChatPanel({
 				toast.error(result.error);
 				return;
 			}
+			seenIdsRef.current.add(result.data.id);
 			setMessages((prev) => {
 				if (!prev) return [result.data];
 				if (prev.some((m) => m.id === result.data.id)) return prev;

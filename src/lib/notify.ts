@@ -434,6 +434,14 @@ async function shouldEmailAboutMessage(
 		return false;
 	}
 
+	// Delivery runs after the response is flushed, so the recipient may have
+	// opened the thread in between. Never email about a message they have
+	// already read — the copy promises we only nudge about what they missed.
+	const stillUnread = await prisma.message.count({
+		where: { id: input.messageId, readAt: null },
+	});
+	if (stillUnread === 0) return false;
+
 	const alreadyPending = await prisma.message.count({
 		where: {
 			conversationId: input.conversationId,
