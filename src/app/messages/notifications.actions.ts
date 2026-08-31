@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { NotificationType, PokeStatus } from "@/generated/prisma/enums";
 import { UserRole } from "@/generated/prisma/enums";
 import { isAdminEmail } from "@/lib/admin";
+import { expireDuePokes } from "@/lib/pokes-expire";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/utils/translations/server";
 
@@ -56,6 +57,8 @@ export async function getNotifications(): Promise<
 	const t = await getT();
 	const userId = await requireUserId();
 	if (!userId) return { ok: false, error: t("errNotAuthenticated") };
+
+	await expireDuePokes();
 
 	const [rows, unreadCount] = await Promise.all([
 		prisma.notification.findMany({

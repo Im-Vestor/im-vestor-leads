@@ -9,6 +9,7 @@ import { findOrCreateDirectConversation } from "@/lib/messages/conversation";
 import { getDisplayName } from "@/lib/messages/display-name";
 import { notifyPokeAnswered, notifyPokeReceived } from "@/lib/notify";
 import { POKE_MESSAGE_MAX_LENGTH, pokeExpiryFrom } from "@/lib/pokes";
+import { expireDuePokes } from "@/lib/pokes-expire";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/utils/translations/server";
 
@@ -51,6 +52,8 @@ export async function sendPoke(
 
 	const me = await requireMe();
 	if (!me) return { ok: false, error: t("errNotAuthenticated") };
+
+	await expireDuePokes();
 
 	let receiverId = parsed.data.targetUserId ?? null;
 	if (parsed.data.projectId) {
@@ -161,6 +164,8 @@ export async function respondToPoke(
 
 	const me = await requireMe();
 	if (!me) return { ok: false, error: t("errNotAuthenticated") };
+
+	await expireDuePokes();
 
 	const poke = await prisma.poke.findUnique({
 		where: { id: parsed.data.pokeId },

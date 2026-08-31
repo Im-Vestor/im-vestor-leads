@@ -37,7 +37,7 @@ type ProjectWithRefs = Prisma.ProjectGetPayload<{
  */
 async function pendingPokeReceiverIds(senderId: string): Promise<Set<string>> {
 	const rows = await prisma.poke.findMany({
-		where: { senderId, status: "PENDING" },
+		where: { senderId, status: "PENDING", expiresAt: { gt: new Date() } },
 		select: { receiverId: true },
 	});
 	return new Set(rows.map((r) => r.receiverId));
